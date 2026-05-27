@@ -1,0 +1,18 @@
+{
+  "name": "Valley Critter Radar",
+  "short_name": "Critter Radar",
+  "description": "Tracks which Disney Dreamlight Valley critters are out right now, who disappears soonest, and your progress toward collecting each one.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#140e33",
+  "theme_color": "#1a1340",
+  "categories": ["games", "utilities"],
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1340">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Critter Radar">
+<title>Valley Critter Radar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%9D%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="manifest" href="./manifest.json">
+<style>
+  :root{
+    --bg0:#140e33; --bg1:#241a52; --bg2:#3a2a6b;
+    --glass:rgba(255,255,255,.07); --glass-brd:rgba(255,255,255,.14);
+    --ink:#f4eeff; --ink-soft:#c4b8e8; --ink-faint:#8d7fb8;
+    --gold:#ffd479; --gold-deep:#f2a93b;
+    --crit:#ff7a8a; --crit-glow:rgba(255,122,138,.35);
+    --soon:#ffc06b; --soon-glow:rgba(255,192,107,.30);
+    --plenty:#ffe8a8;
+    --calm:#7fe0c4; --calm-glow:rgba(127,224,196,.22);
+    --font-display: ui-serif, 'New York', Cambria, Georgia, serif;
+    --font-body: ui-rounded, -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{
+    font-family:var(--font-body);color:var(--ink);
+    background:
+      radial-gradient(1200px 700px at 80% -10%, rgba(122,90,200,.45), transparent 60%),
+      radial-gradient(900px 600px at 10% 110%, rgba(60,200,170,.18), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1) 55%,var(--bg2));
+    background-attachment:fixed;
+    padding:max(14px,env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom));
+    overflow-x:hidden;
+  }
+  .sky{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .fly{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--gold);
+    box-shadow:0 0 8px 2px rgba(255,212,121,.7);opacity:0;animation:drift linear infinite}
+  @keyframes drift{
+    0%{transform:translateY(20px) translateX(0);opacity:0}
+    10%{opacity:.9}50%{opacity:.5}90%{opacity:.8}
+    100%{transform:translateY(-110vh) translateX(40px);opacity:0}
+  }
+  .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto}
+
+  header{padding:6px 4px 18px;animation:rise .6s ease both}
+  .kicker{font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  h1{font-family:var(--font-display);font-weight:900;font-size:2.35rem;line-height:1;margin:.18em 0 .15em;
+     background:linear-gradient(180deg,#fff,#dcccff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .clockline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;color:var(--ink-soft);font-weight:700}
+  .clockline .now{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
+  .clockline .dot{width:7px;height:7px;border-radius:50%;background:var(--calm);box-shadow:0 0 8px var(--calm);align-self:center;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.35}}
+
+  .bar{display:flex;gap:8px;margin:4px 4px 16px;flex-wrap:wrap}
+  .btn{appearance:none;border:1px solid var(--glass-brd);background:var(--glass);color:var(--ink);
+    font-family:var(--font-body);font-weight:800;font-size:.82rem;padding:9px 14px;border-radius:999px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;backdrop-filter:blur(8px);transition:.18s}
+  .btn:hover{border-color:var(--gold);color:var(--gold)}
+  .btn.alt{background:transparent}
+  .btn.music.on{border-color:var(--gold);color:var(--gold);background:rgba(255,212,121,.12)}
+
+  .count{font-family:var(--font-display);font-weight:600;color:var(--ink-soft);font-size:.95rem;margin:0 6px 10px}
+  .count b{color:var(--gold)}
+
+  ul{list-style:none}
+  .card{position:relative;display:flex;align-items:center;gap:12px;
+    background:var(--glass);border:1px solid var(--glass-brd);border-radius:18px;
+    padding:13px 14px 13px 14px;margin-bottom:11px;backdrop-filter:blur(10px);overflow:hidden}
+  .card.appear{animation:rise .5s ease both}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:5px 0 0 5px}
+  .card.t-crit::before{background:var(--crit);box-shadow:0 0 16px 2px var(--crit-glow)}
+  .card.t-soon::before{background:var(--soon);box-shadow:0 0 16px 2px var(--soon-glow)}
+  .card.t-plenty::before{background:var(--plenty)}
+  .card.t-calm::before{background:var(--calm);box-shadow:0 0 14px 1px var(--calm-glow)}
+  .card.t-up::before{background:var(--ink-faint)}
+  .card.t-done::before{background:var(--ink-faint)}
+  .card.faded{opacity:.5}
+
+  .check{flex-shrink:0;width:34px;height:34px;border-radius:50%;cursor:pointer;
+    border:2px solid var(--ink-faint);background:transparent;color:transparent;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;transition:.16s}
+  .check:hover{border-color:var(--gold)}
+  .check.done{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
+  .check.done::after{content:"✓"}
+
+  .emoji{font-size:1.7rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));flex-shrink:0}
+  .meta{flex:1;min-width:0}
+  .nm{font-family:var(--font-display);font-weight:600;font-size:1.08rem;line-height:1.12}
+  .sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+  .chip{font-size:.66rem;font-weight:800;letter-spacing:.02em;padding:3px 8px;border-radius:999px;
+    background:rgba(255,255,255,.08);color:var(--ink-soft);white-space:nowrap}
+  .chip.weather{background:rgba(127,224,196,.16);color:var(--calm)}
+  .chip.dlc{background:rgba(255,212,121,.14);color:var(--gold)}
+
+  .prog{display:flex;align-items:center;gap:8px;margin-top:7px}
+  .tally{font-weight:800;font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
+  .tally b{color:var(--gold)}
+  .pbar{flex:1;max-width:120px;height:5px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
+  .pfill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold-deep),var(--gold))}
+  .mini{appearance:none;border:1px solid var(--glass-brd);background:transparent;color:var(--ink-soft);
+    font-family:var(--font-body);font-weight:800;font-size:.7rem;padding:4px 9px;border-radius:999px;cursor:pointer;
+    white-space:nowrap;transition:.16s;flex-shrink:0}
+  .mini:hover{border-color:var(--gold);color:var(--gold)}
+  .mini.ready{border-color:var(--gold);color:var(--gold);animation:readyglow 1.8s ease-in-out infinite}
+  @keyframes readyglow{50%{background:rgba(255,212,121,.18)}}
+
+  .right{text-align:right;flex-shrink:0;min-width:74px}
+  .leaves{font-family:var(--font-display);font-weight:900;font-size:1.12rem;line-height:1}
+  .t-crit .leaves{color:var(--crit)} .t-soon .leaves{color:var(--soon)}
+  .t-plenty .leaves{color:var(--plenty)} .t-calm .leaves{color:var(--calm)}
+  .t-up .leaves,.t-done .leaves{color:var(--ink-soft);font-size:.98rem}
+  .at{font-size:.7rem;color:var(--ink-faint);font-weight:700;margin-top:2px}
+
+  .section-h{font-family:var(--font-display);font-weight:600;font-size:1.05rem;color:var(--ink-soft);
+    margin:24px 6px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .section-h .caret{transition:.2s;font-size:.8rem;color:var(--ink-faint)}
+  .section-h.closed .caret{transform:rotate(-90deg)}
+  .empty{color:var(--ink-faint);font-style:italic;padding:18px;text-align:center;
+    border:1px dashed var(--glass-brd);border-radius:16px}
+
+  .scrim{position:fixed;inset:0;background:rgba(8,5,24,.6);backdrop-filter:blur(3px);z-index:30;opacity:0;
+    pointer-events:none;transition:.25s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;max-width:560px;margin:0 auto;
+    background:linear-gradient(180deg,#2a1f5c,#1c1442);border:1px solid var(--glass-brd);
+    border-radius:22px 22px 0 0;padding:20px 18px calc(26px + env(safe-area-inset-bottom));
+    transform:translateY(110%);transition:.3s cubic-bezier(.2,.8,.2,1);max-height:86vh;overflow:auto}
+  .sheet.open{transform:translateY(0)}
+  .sheet h2{font-family:var(--font-display);font-weight:900;font-size:1.4rem;margin-bottom:4px}
+  .sheet p.hint{color:var(--ink-faint);font-size:.85rem;margin-bottom:16px}
+  .grp{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:800;margin:16px 4px 8px}
+  .tog{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;
+    border:1px solid var(--glass-brd);border-radius:13px;margin-bottom:8px;background:var(--glass)}
+  .tog .lbl{font-weight:700}.tog .lbl small{display:block;color:var(--ink-faint);font-weight:600;font-size:.74rem;margin-top:1px}
+  .sw{position:relative;width:46px;height:27px;border-radius:999px;background:rgba(255,255,255,.16);
+    flex-shrink:0;cursor:pointer;transition:.2s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;
+    background:#fff;transition:.2s}
+  .sw.on{background:var(--gold-deep)} .sw.on::after{transform:translateX(19px)}
+  .stepper{display:flex;align-items:center;gap:0;flex-shrink:0}
+  .stepper button{width:34px;height:34px;border:1px solid var(--glass-brd);background:var(--glass);
+    color:var(--ink);font-size:1.2rem;font-weight:800;cursor:pointer;border-radius:10px}
+  .stepper .val{min-width:42px;text-align:center;font-weight:800;font-family:var(--font-display);font-size:1.1rem}
+
+  .timegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  select,input[type=time]{width:100%;font-family:var(--font-body);font-weight:700;font-size:.95rem;color:var(--ink);
+    background:var(--glass);border:1px solid var(--glass-brd);border-radius:12px;padding:11px}
+  .seg{display:flex;gap:8px;margin:6px 0 4px}
+  .seg .btn{flex:1;justify-content:center}
+  .seg .btn.active{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
+
+  .backup-row{display:flex;gap:8px;flex-wrap:wrap}
+  .backup-row .btn{flex:1;justify-content:center;font-size:.78rem;padding:10px 12px}
+
+  .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,40px);
+    background:linear-gradient(180deg,#2a1f5c,#1c1442);border:1px solid var(--glass-brd);
+    color:var(--ink);padding:11px 16px;border-radius:14px;font-weight:700;font-size:.85rem;
+    z-index:40;opacity:0;pointer-events:none;transition:.3s;max-width:88vw;text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  footer{margin:30px 6px 0;color:var(--ink-faint);font-size:.76rem;line-height:1.5}
+  footer a{color:var(--ink-soft)}
+  .note{background:var(--glass);border:1px solid var(--glass-brd);border-radius:14px;padding:13px 15px;margin:10px 4px 0}
+
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="sky" id="sky"></div>
+
+<!-- iOS silent-switch unmute helper: a looping silent audio element keeps the audio session
+     classified as "media" rather than "ringer", so Web Audio output survives the hardware mute switch. -->
+<audio id="silentAudio" loop playsinline preload="auto"
+  src="data:audio/wav;base64,UklGRtwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YbgAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA="></audio>
+
+<div class="wrap">
+  <header>
+    <div class="kicker">Dreamlight Valley</div>
+    <h1>Critter Radar</h1>
+    <div class="clockline">
+      <span class="dot" id="livedot"></span>
+      <span class="now" id="nowLabel">—</span>
+      <span id="modeLabel"></span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <button class="btn" id="openSettings">⚙ Biomes &amp; time</button>
+    <button class="btn music" id="musicBtn" title="If you don't hear anything, flip the phone's silent switch off and turn the volume up">🎵 Music</button>
+    <button class="btn alt" id="refreshBtn">↻ Refresh</button>
+  </div>
+
+  <div class="count" id="count"></div>
+  <ul id="nowList"></ul>
+
+  <div class="section-h closed" id="upHead"><span class="caret">▾</span> Coming up later today <span class="chip" id="upCount"></span></div>
+  <ul id="upList" style="display:none"></ul>
+
+  <div class="section-h" id="fedHead"><span class="caret">▾</span> ✓ Fed today <span class="chip" id="fedCount"></span></div>
+  <ul id="fedList"></ul>
+
+  <div class="section-h closed" id="colHead"><span class="caret">▾</span> 🏆 Collected companions <span class="chip" id="colCount"></span></div>
+  <ul id="colList" style="display:none"></ul>
+
+  <footer>
+    <div class="note" id="contextNote"></div>
+    <p style="margin-top:12px">Tap the circle to mark a critter <b>fed today</b> — it sinks to the “Fed today” pile and the tally (<b>×N</b>) climbs. It takes roughly 2–8 daily feedings to collect one as a companion (favourite food is faster), and the bar fills toward your goal. The fed check clears on its own at <b>midnight</b>, the same time the in-game feeding reward resets. Hit <b>🏆</b> once it’s a companion to file it away; restore it any time from “Collected.”</p>
+    <p style="margin-top:10px">Times are community-sourced (GameRant critter schedule, Dec 2025) and follow your device’s local clock. Two critters (Patterned Skunk, Blue Sweet Bee) also depend on weather, so they’re flagged 🌦. Your checks, tallies and collected list are saved on this device — use <b>Export</b> in Settings every so often to keep a backup.</p>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet">
+  <h2>Settings</h2>
+  <p class="hint">Turn off biomes you haven’t unlocked so the list only shows critters you can actually reach.</p>
+
+  <div class="grp">Fed-today pile</div>
+  <div class="tog"><div class="lbl">Hide fed critters<small>Otherwise they sink to a dimmed pile at the bottom</small></div><div class="sw" id="swHide"></div></div>
+
+  <div class="grp">Companion goal (approx.)</div>
+  <div class="tog"><div class="lbl">Feedings to “likely collected”<small>Favourites finish in ~2–5; rarer ones up to ~8</small></div>
+    <div class="stepper"><button id="goalDown">−</button><span class="val" id="goalVal">8</span><button id="goalUp">+</button></div></div>
+
+  <div class="grp">Viewing time</div>
+  <div class="seg">
+    <button class="btn active" id="modeLive">Right now</button>
+    <button class="btn" id="modeCustom">Pick a time</button>
+  </div>
+  <div class="timegrid" id="customTime" style="display:none">
+    <select id="dowSel"></select>
+    <input type="time" id="timeSel" value="10:00">
+  </div>
+
+  <div id="biomeToggles"></div>
+
+  <div class="grp">Backup &amp; restore</div>
+  <p class="hint" style="margin-bottom:8px">Save your progress to a file (handy before phone changes, or every few weeks — iOS can clear app data after about a week of disuse).</p>
+  <div class="backup-row">
+    <button class="btn" id="exportBtn">⤓ Export progress</button>
+    <button class="btn" id="importBtn">⤒ Import…</button>
+  </div>
+  <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+
+  <button class="btn" id="closeSettings" style="width:100%;justify-content:center;margin-top:20px">Done</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const A="all", _=null;
+const PM=[[720,1440]], AM=[[0,720]]; // "12PM-12AM" and "12AM-12PM"
+const PACKS = [
+  {id:"base",  name:"Base game"},
+  {id:"isle",  name:"Eternity Isle (A Rift in Time)"},
+  {id:"vale",  name:"Storybook Vale"},
+  {id:"wish",  name:"Wishblossom Mountains"},
+];
+const BIOMES = [
+  {id:"plaza", pack:"base", name:"Plaza", critter:"Squirrels", emoji:"🐿️", approach:"Walk up slowly — no minigame", food:"Peanut"},
+  {id:"meadow",pack:"base", name:"Peaceful Meadow", critter:"Rabbits", emoji:"🐰", approach:"Chase to tag, then it stops", food:"Carrot"},
+  {id:"beach", pack:"base", name:"Dazzle Beach", critter:"Sea Turtles", emoji:"🐢", approach:"Approach slowly", food:"Seaweed"},
+  {id:"forest",pack:"base", name:"Forest of Valor", critter:"Raccoons", emoji:"🦝", approach:"Approach slowly", food:"Blueberry"},
+  {id:"glade", pack:"base", name:"Glade of Trust", critter:"Crocodiles", emoji:"🐊", approach:"Approach slowly", food:"Any fish"},
+  {id:"plateau",pack:"base",name:"Sunlit Plateau", critter:"Sunbirds", emoji:"🐦", approach:"Approach slowly", food:"Flowers"},
+  {id:"heights",pack:"base",name:"Frosted Heights", critter:"Foxes", emoji:"🦊", approach:"Approach slowly", food:"Any fish"},
+  {id:"forgot", pack:"base",name:"Forgotten Lands", critter:"Ravens", emoji:"🐦‍⬛", approach:"Approach slowly", food:"Any fish"},
+  {id:"landing",pack:"isle",name:"Ancient's Landing", critter:"Monkeys", emoji:"🐒", approach:"Approach slowly", food:"Fruit"},
+  {id:"dunes",  pack:"isle",name:"Glittering Dunes", critter:"Cobras", emoji:"🐍", approach:"Approach slowly", food:"—"},
+  {id:"tangle", pack:"isle",name:"Wild Tangle", critter:"Capybaras", emoji:"🦫", approach:"Very approachable", food:"—"},
+  {id:"ever",   pack:"vale",name:"Everafter", critter:"Baby Dragons", emoji:"🐉", approach:"Approach slowly", food:"Pure Ice or Magma"},
+  {id:"myth",   pack:"vale",name:"Mythopia", critter:"Baby Pegasi", emoji:"🦄", approach:"Approach slowly", food:"4★ veggie meal"},
+  {id:"bind",   pack:"vale",name:"The Bind", critter:"Owls", emoji:"🦉", approach:"Approach slowly", food:"Barley"},
+  {id:"alps",   pack:"wish",name:"Wishing Alps", critter:"Geese", emoji:"🦢", approach:"Approach slowly", food:"—"},
+  {id:"gulch",  pack:"wish",name:"Glamour Gulch", critter:"Skunks", emoji:"🦨", approach:"Approach slowly", food:"—"},
+  {id:"pixie",  pack:"wish",name:"Pixie Acres", critter:"Bees", emoji:"🐝", approach:"Bring Honey Coral", food:"Honey"},
+];
+// CRITTERS: {biome, name, emoji, sched[7], weather?}
+const C = [
+  // PLAZA
+  {b:"plaza", n:"Black Squirrel",  s:[AM,_,A,_,A,A,_]},
+  {b:"plaza", n:"Classic Squirrel",s:[PM,A,_,_,A,_,A]},
+  {b:"plaza", n:"Gray Squirrel",   s:[PM,_,A,A,_,_,A]},
+  {b:"plaza", n:"Red Squirrel",    s:[AM,A,_,A,_,A,_]},
+  {b:"plaza", n:"White Squirrel",  s:[[[0,360]],_,_,_,_,_,_]},
+  // MEADOW
+  {b:"meadow",n:"Black Rabbit",    s:[AM,A,_,A,_,A,_]},
+  {b:"meadow",n:"Brown Rabbit",    s:[PM,_,A,A,_,_,A]},
+  {b:"meadow",n:"Calico Rabbit",   s:[_,_,_,_,[[480,840]],_,_]},
+  {b:"meadow",n:"Classic Rabbit",  s:[PM,A,_,_,A,_,A]},
+  {b:"meadow",n:"White Rabbit",    s:[AM,_,A,_,A,A,_]},
+  // BEACH
+  {b:"beach", n:"Black Sea Turtle",s:[_,[[600,960]],_,_,_,_,_]},
+  {b:"beach", n:"Brown Sea Turtle",s:[AM,A,_,A,_,A,_]},
+  {b:"beach", n:"Classic Sea Turtle",s:[PM,A,_,_,A,_,A]},
+  {b:"beach", n:"Purple Sea Turtle",s:[AM,_,A,_,A,A,_]},
+  {b:"beach", n:"White Sea Turtle",s:[PM,_,A,A,_,_,A]},
+  // FOREST
+  {b:"forest",n:"Black Raccoon",   s:[PM,_,A,A,_,_,A]},
+  {b:"forest",n:"Blue Raccoon",    s:[_,_,_,[[960,1320]],_,_,_]},
+  {b:"forest",n:"Classic Raccoon", s:[PM,A,_,_,A,_,A]},
+  {b:"forest",n:"Red Raccoon",     s:[AM,A,_,A,_,A,_]},
+  {b:"forest",n:"White Raccoon",   s:[AM,_,A,_,A,A,_]},
+  // GLADE
+  {b:"glade", n:"Blue Crocodile",  s:[AM,A,_,A,_,A,_]},
+  {b:"glade", n:"Classic Crocodile",s:[PM,A,_,_,A,_,A]},
+  {b:"glade", n:"Golden Crocodile",s:[AM,_,A,_,A,A,_]},
+  {b:"glade", n:"Pink Crocodile",  s:[_,_,_,_,_,_,[[360,720]]]},
+  {b:"glade", n:"Red Crocodile",   s:[PM,_,A,A,_,_,A]},
+  // PLATEAU
+  {b:"plateau",n:"Emerald Sunbird",s:[PM,_,A,A,_,_,A]},
+  {b:"plateau",n:"Golden Sunbird", s:[AM,_,A,_,A,A,_]},
+  {b:"plateau",n:"Orchid Sunbird", s:[_,_,_,_,_,[[540,900]],_]},
+  {b:"plateau",n:"Red Sunbird",    s:[PM,A,_,_,A,_,A]},
+  {b:"plateau",n:"Turquoise Sunbird",s:[AM,A,_,A,_,A,_]},
+  // HEIGHTS
+  {b:"heights",n:"Black Fox",      s:[PM,_,A,A,_,_,A]},
+  {b:"heights",n:"Blue Fox",       s:[AM,_,A,_,A,A,_]},
+  {b:"heights",n:"Classic Fox",    s:[AM,A,_,A,_,A,_]},
+  {b:"heights",n:"Red Fox",        s:[_,_,_,_,_,_,[[120,480]]]},
+  {b:"heights",n:"White Fox",      s:[PM,A,_,_,A,_,A]},
+  // FORGOTTEN
+  {b:"forgot",n:"Blue Raven",      s:[AM,_,A,_,A,A,_]},
+  {b:"forgot",n:"Brown Raven",     s:[_,_,[[1080,1440]],_,_,_,_]},
+  {b:"forgot",n:"Classic Raven",   s:[PM,A,_,_,A,_,A]},
+  {b:"forgot",n:"Red Raven",       s:[AM,A,_,A,_,A,_]},
+  {b:"forgot",n:"White Raven",     s:[PM,_,A,A,_,_,A]},
+  // LANDING (Monkeys)
+  {b:"landing",n:"Beige Monkey",   s:[A,PM,_,PM,A,PM,_]},
+  {b:"landing",n:"Black & Brown Monkey",s:[PM,_,PM,A,PM,_,A]},
+  {b:"landing",n:"Black & Gray Monkey",s:[_,_,[[1080,1440]],_,_,_,_]},
+  {b:"landing",n:"Classic Monkey", s:[A,A,A,A,A,A,A]},
+  {b:"landing",n:"Red & Beige Monkey",s:[_,AM,A,AM,_,AM,A]},
+  {b:"landing",n:"Toon Monkey",    s:[A,A,A,A,A,A,A], q:1},
+  // DUNES (Cobras)
+  {b:"dunes", n:"Blue & Red Cobra",s:[A,PM,PM,_,A,_,PM]},
+  {b:"dunes", n:"Classic Cobra",   s:[A,A,A,A,A,A,A]},
+  {b:"dunes", n:"Green & White Cobra",s:[_,_,_,_,[[360,720]],_,_]},
+  {b:"dunes", n:"Pink Spotted Cobra",s:[AM,A,_,AM,AM,A,_]},
+  {b:"dunes", n:"Yellow & Purple Cobra",s:[PM,_,A,PM,PM,_,A]},
+  {b:"dunes", n:"Toon Cobra",      s:[A,A,A,A,A,A,A], q:1},
+  // TANGLE (Capybaras)
+  {b:"tangle",n:"Black & White Capybara",s:[PM,_,A,_,A,PM,PM]},
+  {b:"tangle",n:"Blue Striped Capybara",s:[_,AM,AM,AM,A,_,A]},
+  {b:"tangle",n:"Classic Capybara",s:[A,A,A,A,A,A,A]},
+  {b:"tangle",n:"Gray Spotted Capybara",s:[A,[[720,1080]],PM,PM,_,A,_]},
+  {b:"tangle",n:"Red & White Capybara",s:[_,_,_,_,_,_,[[720,1080]]]},
+  {b:"tangle",n:"Toon Capybara",   s:[A,A,A,A,A,A,A], q:1},
+  // EVERAFTER (Baby Dragons)
+  {b:"ever",  n:"Blue Baby Dragon",s:[_,_,A,A,A,A,_]},
+  {b:"ever",  n:"Green Baby Dragon",s:[[[600,1080]],[[600,1080]],[[600,1080]],[[600,1080]],[[600,1080]],_,_]},
+  {b:"ever",  n:"Purple Baby Dragon",s:[AM,AM,AM,AM,AM,AM,AM]},
+  {b:"ever",  n:"Red Baby Dragon", s:[A,_,_,_,_,_,A]},
+  // MYTHOPIA (Pegasi)
+  {b:"myth",  n:"Blue Pegasus",    s:[_,A,A,A,_,_,_]},
+  {b:"myth",  n:"Peach Pegasus",   s:[[[360,840]],[[360,840]],[[360,840]],[[360,840]],[[360,840]],[[360,840]],[[360,840]]]},
+  {b:"myth",  n:"Pink Pegasus",    s:[A,_,_,_,A,A,A]},
+  {b:"myth",  n:"Yellow Pegasus",  s:[_,_,[[1080,1440]],[[1080,1440]],[[1080,1440]],[[1080,1440]],[[1080,1440]]]},
+  // BIND (Owls)
+  {b:"bind",  n:"Brown Owl",       s:[_,A,A,A,A,A,_]},
+  {b:"bind",  n:"Dark Owl",        s:[A,_,_,_,_,_,A]},
+  {b:"bind",  n:"Light Owl",       s:[[[900,1200]],[[900,1200]],[[900,1200]],[[900,1200]],[[900,1200]],[[900,1200]],[[900,1200]]]},
+  {b:"bind",  n:"Purple Owl",      s:[[[0,540]],[[0,540]],[[0,540]],[[0,540]],[[0,540]],[[0,540]],[[0,540]]]},
+  // ALPS (Geese)
+  {b:"alps",  n:"Black Goose",     s:[[[300,660]],[[300,660]],[[300,660]],[[300,660]],[[300,660]],[[300,660]],[[300,660]]]},
+  {b:"alps",  n:"Blue Goose",      s:[[[1080,1200]],[[1080,1200]],[[1080,1200]],[[1080,1200]],[[1080,1200]],[[1080,1200]],[[1080,1200]]]},
+  {b:"alps",  n:"Golden Goose",    s:[[[420,480],[1140,1200]],[[420,480],[1140,1200]],[[420,480],[1140,1200]],[[420,480],[1140,1200]],[[420,480],[1140,1200]],[[420,480],[1140,1200]],[[420,480],[1140,1200]]]},
+  {b:"alps",  n:"Goose",           s:[A,A,_,A,_,A,_]},
+  {b:"alps",  n:"True North Goose",s:[_,_,A,_,A,_,A]},
+  // GULCH (Skunks)
+  {b:"gulch", n:"Brown Skunk",     s:[PM,PM,_,PM,_,PM,_]},
+  {b:"gulch", n:"Patterned Skunk", s:[A,A,A,A,A,A,A], weather:"Only in heavy rain or cloudy weather"},
+  {b:"gulch", n:"Skunk",           s:[AM,AM,AM,AM,AM,AM,AM]},
+  {b:"gulch", n:"White Skunk",     s:[PM,_,PM,_,PM,_,PM]},
+  // PIXIE (Bees)
+  {b:"pixie", n:"Blue Sweet Bee",  s:[A,A,A,A,A,A,A], weather:"Only in clear or partly cloudy weather"},
+  {b:"pixie", n:"Pink Sweet Bee",  s:[A,A,A,A,A,A,A]},
+  {b:"pixie", n:"Sweet Bee",       s:[[[420,1200]],[[420,1200]],[[420,1200]],[[420,1200]],[[420,1200]],[[420,1200]],[[420,1200]]]},
+  {b:"pixie", n:"White Sweet Bee", s:[[[1200,420]],[[1200,420]],[[1200,420]],[[1200,420]],[[1200,420]],[[1200,420]],[[1200,420]]]},
+];
+const BIO = Object.fromEntries(BIOMES.map(b=>[b.id,b]));
+const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+/* ---------------- LOGIC ---------------- */
+function intervalsActive(intervals, now){
+  let best=null;
+  for(const [s,e] of intervals){
+    let inside,remaining,endAt;
+    if(e>s){ inside = now>=s && now<e; remaining=e-now; endAt=e; }
+    else   { inside = now>=s || now<e; if(inside){ remaining = now>=s ? (1440-now+e) : (e-now); endAt=e; } }
+    if(inside && (best===null || remaining<best.remaining)) best={remaining,endAt};
+  }
+  return best ? {active:true,...best} : {active:false};
+}
+function nextArrivalToday(intervals, now){
+  let soon=null; for(const [s] of intervals){ if(s>now && (soon===null||s<soon)) soon=s; } return soon;
+}
+function evaluate(entry, now){
+  if(entry==null) return {state:'off'};
+  if(entry==='all') return {state:'allday'};
+  const a=intervalsActive(entry,now);
+  if(a.active) return {state:'active',remaining:a.remaining,endAt:a.endAt};
+  const arr=nextArrivalToday(entry,now);
+  if(arr!==null) return {state:'upcoming',startAt:arr,in:arr-now};
+  return {state:'off'};
+}
+function fmtClock(min){
+  let m=((min%1440)+1440)%1440;
+  if(m===0) return 'midnight';
+  if(m===720) return 'noon';
+  let h=Math.floor(m/60),mm=m%60; const ap=h<12?'AM':'PM'; let hh=h%12; if(hh===0)hh=12;
+  return `${hh}:${String(mm).padStart(2,'0')} ${ap}`;
+}
+function fmtDur(min){ const h=Math.floor(min/60),m=min%60; if(h<=0)return `${m}m`; if(m===0)return `${h}h`; return `${h}h ${m}m`; }
+function tier(rem){ if(rem<60)return'crit'; if(rem<180)return'soon'; return'plenty'; }
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+/* ---------------- STATE / STORAGE ---------------- */
+const mem={};
+const store={
+  get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v);}catch(e){ return (k in mem)?mem[k]:d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ mem[k]=v; } }
+};
+let enabled = store.get('enabledBiomes', Object.fromEntries(BIOMES.map(b=>[b.id,true])));
+if(typeof enabled!=='object' || enabled===null) enabled = Object.fromEntries(BIOMES.map(b=>[b.id,true]));
+BIOMES.forEach(b=>{ if(!(b.id in enabled)) enabled[b.id]=true; });
+let mode = store.get('timeMode','live');
+if(mode!=='live' && mode!=='custom') mode='live';
+let customDow = store.get('customDow', new Date().getDay());
+if(typeof customDow!=='number' || customDow<0 || customDow>6) customDow = new Date().getDay();
+let customTime = store.get('customTime','10:00');
+if(typeof customTime!=='string' || !/^\d{1,2}:\d{2}$/.test(customTime)) customTime='10:00';
+let hideFed = !!store.get('hideFed', false);
+let goal = store.get('goal', 8);
+if(typeof goal!=='number' || goal<2 || goal>20) goal=8;
+// progress: key "biome|name" -> {count:int, fedDate:"YYYY-MM-DD"|null, companion:bool}
+let progress = store.get('progress', {});
+if(typeof progress!=='object' || progress===null) progress={};
+
+const keyOf = c => c.b + '|' + c.n;
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function rec(c){ const k=keyOf(c); if(!progress[k] || typeof progress[k]!=='object') progress[k]={count:0,fedDate:null,companion:false}; return progress[k]; }
+function isFedToday(c){ const r=progress[keyOf(c)]; return !!(r && r.fedDate===todayStr()); }
+function isCompanion(c){ const r=progress[keyOf(c)]; return !!(r && r.companion); }
+function saveProgress(){ store.set('progress',progress); }
+
+function toggleFed(c){
+  const r=rec(c), t=todayStr();
+  if(r.fedDate===t){ r.fedDate=null; r.count=Math.max(0,r.count-1); }   // undo today's check
+  else { r.fedDate=t; r.count+=1; }
+  saveProgress(); render();
+}
+function setCompanion(c,val){ rec(c).companion=val; saveProgress(); render(); }
+
+/* ---------------- RENDER ---------------- */
+let firstRender = true;   // controls one-time appear animation; subsequent renders don't restart it
+function refTime(){
+  if(mode==='custom'){ const [h,m]=customTime.split(':').map(Number); return {dow:customDow, mins:h*60+m}; }
+  const d=new Date(); return {dow:d.getDay(), mins:d.getHours()*60+d.getMinutes()};
+}
+function render(){
+  const {dow,mins}=refTime();
+  document.getElementById('nowLabel').textContent = `${DAYS[dow]} · ${fmtClock(mins)}`;
+  document.getElementById('modeLabel').innerHTML = mode==='custom' ? '<span class="chip">planning view</span>' : '';
+  document.getElementById('livedot').style.background = mode==='custom' ? 'var(--gold)' : 'var(--calm)';
+
+  const now=[], up=[], fed=[], col=[];
+  for(const c of C){
+    if(isCompanion(c)){ if(enabled[c.b]) col.push(c); continue; }
+    if(!enabled[c.b]) continue;
+    if(isFedToday(c)){ fed.push(c); continue; }
+    const ev=evaluate(c.s[dow], mins);
+    if(ev.state==='active'||ev.state==='allday') now.push({c,ev});
+    else if(ev.state==='upcoming') up.push({c,ev});
+  }
+  now.sort((x,y)=>{
+    const kx=x.ev.state==='allday'?Infinity:x.ev.remaining, ky=y.ev.state==='allday'?Infinity:y.ev.remaining;
+    return kx-ky || x.c.n.localeCompare(y.c.n);
+  });
+  up.sort((x,y)=> x.ev.in-y.ev.in || x.c.n.localeCompare(y.c.n));
+  fed.sort((a,b)=> a.n.localeCompare(b.n));
+  col.sort((a,b)=> a.n.localeCompare(b.n));
+
+  const windowed = now.filter(o=>o.ev.state==='active').length;
+  document.getElementById('count').innerHTML =
+    `<b>${now.length}</b> still to find` + (windowed?` · <b>${windowed}</b> leaving before midnight`:``);
+
+  // NOW
+  const nl=document.getElementById('nowList'); nl.innerHTML='';
+  if(!now.length){ nl.innerHTML='<div class="empty">Nothing left to find right now in your enabled biomes. Check “Coming up,” or you’ve fed everything that’s out — nice.</div>'; }
+  now.forEach((o,i)=>nl.appendChild(card(o.c,o.ev,i,'now')));
+
+  // UP
+  const ul=document.getElementById('upList'); ul.innerHTML='';
+  up.forEach((o,i)=>ul.appendChild(card(o.c,o.ev,i,'up')));
+  document.getElementById('upCount').textContent = up.length||'';
+
+  // FED
+  const fl=document.getElementById('fedList'); fl.innerHTML='';
+  document.getElementById('fedHead').style.display = fed.length? 'flex':'none';
+  if(!hideFed) fed.forEach((c,i)=>fl.appendChild(card(c,null,i,'done')));
+  fl.style.display = hideFed? 'none':'block';
+  document.getElementById('fedCount').textContent = fed.length? (hideFed?fed.length+' hidden':fed.length):'';
+
+  // COLLECTED
+  const cl=document.getElementById('colList'); cl.innerHTML='';
+  document.getElementById('colHead').style.display = col.length? 'flex':'none';
+  col.forEach((c,i)=>cl.appendChild(card(c,null,i,'col')));
+  document.getElementById('colCount').textContent = col.length||'';
+
+  const tracked = C.filter(c=>enabled[c.b] && !isCompanion(c)).length;
+  document.getElementById('contextNote').innerHTML =
+    `Still hunting <b style="color:var(--gold)">${tracked}</b> variants across <b style="color:var(--gold)">${BIOMES.filter(b=>enabled[b.id]).length}</b> biomes · <b style="color:var(--gold)">${col.length}</b> collected. Unfed critters are ranked by who vanishes soonest; “All&nbsp;day” sits last; fed ones drop to the pile below until midnight.`;
+
+  firstRender = false;
+}
+
+function card(c,ev,i,kind){
+  const b=BIO[c.b], r=rec(c);
+  const li=document.createElement('li');
+  let t,right='';
+  if(kind==='col'){ t='done'; }
+  else if(kind==='done'){ t='done'; right=`<div class="leaves">✓ fed</div><div class="at">back tomorrow</div>`; }
+  else if(kind==='up'){ t='up'; right=`<div class="leaves">in ${fmtDur(ev.in)}</div><div class="at">arrives ${fmtClock(ev.startAt)}</div>`; }
+  else if(ev.state==='allday'){ t='calm'; right=`<div class="leaves">All&nbsp;day</div><div class="at">no rush</div>`; }
+  else { t=tier(ev.remaining); right=`<div class="leaves">${fmtDur(ev.remaining)}</div><div class="at">until ${fmtClock(ev.endAt)}</div>`; }
+  li.className=`card t-${t}`+((kind==='done')?' faded':'')+(firstRender?' appear':'');
+  if(firstRender) li.style.animationDelay=(i*0.03)+'s';
+
+  let left;
+  if(kind==='col'){
+    left=`<button class="check done" data-act="restore" title="Bring back"></button>`;
+  } else {
+    left=`<button class="check${kind==='done'?' done':''}" data-act="fed" title="Fed today"></button>`;
+  }
+
+  const chips=[`<span class="chip">${b.name}</span>`];
+  if(b.pack!=='base') chips.push(`<span class="chip dlc">${PACKS.find(p=>p.id===b.pack).name.split(' (')[0]}</span>`);
+  if(c.q) chips.push(`<span class="chip dlc">quest</span>`);
+  if(c.weather) chips.push(`<span class="chip weather" title="${c.weather}">🌦</span>`);
+
+  const pct=Math.max(0,Math.min(100, Math.round(r.count/goal*100)));
+  const ready = r.count>=goal;
+  let prog='';
+  if(kind==='col'){
+    prog=`<div class="prog"><span class="tally">fed <b>${r.count}</b>× · collected 🏆</span>
+      <button class="mini" data-act="restore">↩ Bring back</button></div>`;
+  } else {
+    prog=`<div class="prog">
+      <span class="tally">×<b>${r.count}</b></span>
+      <span class="pbar"><span class="pfill" style="width:${pct}%"></span></span>
+      <button class="mini${ready?' ready':''}" data-act="companion">🏆 ${ready?'Collect?':'Got it'}</button>
+    </div>`;
+  }
+
+  li.innerHTML = `${left}<div class="emoji">${b.emoji}</div>
+    <div class="meta"><div class="nm">${c.n}</div><div class="sub">${chips.join('')}</div>${prog}</div>
+    ${right?`<div class="right">${right}</div>`:''}`;
+
+  li.querySelectorAll('[data-act]').forEach(el=>{
+    el.addEventListener('click',e=>{ e.stopPropagation();
+      const a=el.dataset.act;
+      if(a==='fed') toggleFed(c);
+      else if(a==='companion') setCompanion(c,true);
+      else if(a==='restore') setCompanion(c,false);
+    });
+  });
+  return li;
+}
+
+/* ---------------- TOAST ---------------- */
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ---------------- SETTINGS UI ---------------- */
+const sheet=document.getElementById('sheet'), scrim=document.getElementById('scrim');
+function openSheet(){ buildToggles(); sheet.classList.add('open'); scrim.classList.add('open'); }
+function closeSheet(){ sheet.classList.remove('open'); scrim.classList.remove('open'); }
+document.getElementById('openSettings').onclick=openSheet;
+document.getElementById('closeSettings').onclick=closeSheet;
+scrim.onclick=closeSheet;
+document.getElementById('refreshBtn').onclick=render;
+
+function buildToggles(){
+  const host=document.getElementById('biomeToggles'); host.innerHTML='';
+  const g0=document.createElement('div'); g0.className='grp'; g0.textContent='Biomes you can reach'; host.appendChild(g0);
+  for(const p of PACKS){
+    const g=document.createElement('div'); g.className='grp'; g.textContent=p.name; host.appendChild(g);
+    for(const b of BIOMES.filter(x=>x.pack===p.id)){
+      const row=document.createElement('div'); row.className='tog';
+      row.innerHTML=`<div class="lbl">${b.emoji} ${b.name}<small>${b.critter} · feed: ${b.food}</small></div>`;
+      const sw=document.createElement('div'); sw.className='sw'+(enabled[b.id]?' on':'');
+      sw.onclick=()=>{ enabled[b.id]=!enabled[b.id]; sw.classList.toggle('on'); store.set('enabledBiomes',enabled); render(); };
+      row.appendChild(sw); host.appendChild(row);
+    }
+  }
+}
+// hide-fed toggle
+const swHide=document.getElementById('swHide');
+function paintHide(){ swHide.classList.toggle('on',hideFed); }
+swHide.onclick=()=>{ hideFed=!hideFed; store.set('hideFed',hideFed); paintHide(); render(); };
+paintHide();
+// goal stepper
+const goalVal=document.getElementById('goalVal'); goalVal.textContent=goal;
+document.getElementById('goalDown').onclick=()=>{ goal=Math.max(2,goal-1); goalVal.textContent=goal; store.set('goal',goal); render(); };
+document.getElementById('goalUp').onclick=()=>{ goal=Math.min(20,goal+1); goalVal.textContent=goal; store.set('goal',goal); render(); };
+// time mode
+const mLive=document.getElementById('modeLive'), mCustom=document.getElementById('modeCustom'),
+      ct=document.getElementById('customTime'), dowSel=document.getElementById('dowSel'), timeSel=document.getElementById('timeSel');
+DAYS.forEach((d,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=d; dowSel.appendChild(o); });
+dowSel.value=customDow; timeSel.value=customTime;
+function setMode(m){ mode=m; store.set('timeMode',m);
+  mLive.classList.toggle('active',m==='live'); mCustom.classList.toggle('active',m==='custom');
+  ct.style.display=m==='custom'?'grid':'none'; render(); }
+mLive.onclick=()=>setMode('live'); mCustom.onclick=()=>setMode('custom');
+dowSel.onchange=()=>{ customDow=+dowSel.value; store.set('customDow',customDow); render(); };
+timeSel.onchange=()=>{ customTime=timeSel.value; store.set('customTime',customTime); render(); };
+setMode(mode);
+
+// section collapsers
+function collapser(headId,listId,startClosed){
+  const h=document.getElementById(headId), l=document.getElementById(listId);
+  if(startClosed){ l.style.display='none'; h.classList.add('closed'); }
+  h.onclick=()=>{ const open=l.style.display==='none'; l.style.display=open?'block':'none'; h.classList.toggle('closed',!open); };
+}
+collapser('upHead','upList',true);
+collapser('colHead','colList',true);
+collapser('fedHead','fedList',false);
+
+/* ---------------- EXPORT / IMPORT ---------------- */
+document.getElementById('exportBtn').onclick=()=>{
+  const data={
+    app:'critter-radar', version:1, exportedAt:new Date().toISOString(),
+    progress, enabled, goal, hideFed, customDow, customTime, timeMode:mode
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`critter-radar-backup-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast('Backup downloaded');
+};
+const importFile=document.getElementById('importFile');
+document.getElementById('importBtn').onclick=()=>importFile.click();
+importFile.onchange=()=>{
+  const f=importFile.files && importFile.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || typeof data!=='object') throw new Error('not a Critter Radar backup');
+      let restored=0;
+      if(data.progress && typeof data.progress==='object'){
+        progress = data.progress;
+        store.set('progress',progress);
+        restored = Object.keys(progress).length;
+      }
+      if(data.enabled && typeof data.enabled==='object'){
+        enabled = data.enabled;
+        BIOMES.forEach(b=>{ if(!(b.id in enabled)) enabled[b.id]=true; });
+        store.set('enabledBiomes',enabled);
+      }
+      if(typeof data.goal==='number'){ goal=Math.max(2,Math.min(20,data.goal)); store.set('goal',goal); goalVal.textContent=goal; }
+      if(typeof data.hideFed==='boolean'){ hideFed=data.hideFed; store.set('hideFed',hideFed); paintHide(); }
+      firstRender = true;     // animate the new state in
+      render();
+      toast(`Imported · ${restored} critter records restored`);
+    }catch(e){ toast('Could not import: ' + (e.message||'bad file')); }
+    importFile.value='';
+  };
+  reader.readAsText(f);
+};
+
+/* ---------------- GENERATIVE MUSIC (Web Audio, no assets) ---------------- */
+const Music=(()=>{
+  let actx=null, master=null, lp=null, delay=null, fb=null;
+  let playing=false, nextTime=0, step=0, schedHandle=null;
+  const BPM=64, beat=60/BPM;
+  // warm, hopeful I–vi–IV–V in C
+  const prog=[ [0,4,7,11,14], [-3,0,4,7,11], [5,9,12,16,19], [7,11,14,16,19] ];
+  const pent=[0,2,4,7,9,12,14,16];
+  const f = s => 261.63*Math.pow(2,s/12);
+
+  function build(){
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    master=actx.createGain(); master.gain.value=0;
+    lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2300; lp.Q.value=.4;
+    delay=actx.createDelay(); delay.delayTime.value=0.34;
+    fb=actx.createGain(); fb.gain.value=0.26;
+    const wet=actx.createGain(); wet.gain.value=0.5;
+    const comp=actx.createDynamicsCompressor();
+    comp.threshold.value=-18; comp.ratio.value=4; comp.attack.value=0.01; comp.release.value=0.25;
+    master.connect(lp); lp.connect(comp); comp.connect(actx.destination);
+    lp.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
+  }
+  function pad(chord,t){
+    const dur=beat*4;
+    chord.forEach((s,i)=>{
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type='triangle'; o.frequency.value=f(s-12); o.detune.value=(i%2?6:-6);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.05,t+0.8);
+      g.gain.linearRampToValueAtTime(0.04,t+dur*0.7);
+      g.gain.linearRampToValueAtTime(0,t+dur+0.4);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.5);
+    });
+  }
+  function bell(s,t,vel){
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='sine'; o.frequency.value=f(s+12);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vel,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0008,t+1.1);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+1.2);
+  }
+  // self-rescheduling setTimeout (Chris Wilson's "two clocks" pattern).
+  // Larger 0.25s look-ahead absorbs the 100ms wake jitter and screen-lock throttling.
+  function sched(){
+    if(!playing || !actx) return;
+    while(nextTime < actx.currentTime + 0.25){
+      const measure=Math.floor(step/4), inBar=step%4;
+      const chord=prog[measure%prog.length];
+      if(inBar===0) pad(chord,nextTime);
+      if(Math.random() < (inBar%2===0?0.7:0.4)){
+        const pool = Math.random()<0.5 ? chord : pent;
+        const s = pool[Math.floor(Math.random()*pool.length)];
+        bell(s, nextTime, 0.05+Math.random()*0.04);
+      }
+      if(Math.random()<0.25){ const s=pent[Math.floor(Math.random()*pent.length)]; bell(s,nextTime+beat/2,0.03); }
+      nextTime+=beat; step++;
+    }
+    schedHandle=setTimeout(sched, 100);
+  }
+  async function start(){
+    if(playing) return true;
+    // iOS silent-switch override: nudge an HTML <audio> element on the same gesture so iOS routes Web Audio as media.
+    try{
+      const silent=document.getElementById('silentAudio');
+      if(silent){ silent.muted=false; silent.volume=0.001; await silent.play().catch(()=>{}); }
+    }catch(e){}
+    if(!actx) build();
+    if(actx.state!=='running'){
+      try{ await actx.resume(); }catch(e){}
+    }
+    if(actx.state!=='running'){
+      toast('Audio is blocked — tap the music button again, and make sure phone audio isn’t muted');
+      return false;
+    }
+    playing=true; nextTime=actx.currentTime+0.1; step=0;
+    master.gain.cancelScheduledValues(actx.currentTime);
+    master.gain.setValueAtTime(master.gain.value,actx.currentTime);
+    master.gain.linearRampToValueAtTime(0.5,actx.currentTime+1.2);
+    sched();
+    return true;
+  }
+  function stop(){
+    if(!playing) return;
+    playing=false;
+    if(schedHandle){ clearTimeout(schedHandle); schedHandle=null; }
+    if(!actx) return;
+    master.gain.cancelScheduledValues(actx.currentTime);
+    master.gain.setValueAtTime(master.gain.value,actx.currentTime);
+    master.gain.linearRampToValueAtTime(0,actx.currentTime+0.6);
+    setTimeout(()=>{ if(!playing && actx && actx.state==='running'){ actx.suspend && actx.suspend(); } },800);
+    try{ const silent=document.getElementById('silentAudio'); if(silent && !silent.paused) silent.pause(); }catch(e){}
+  }
+  return {
+    async toggle(){ if(playing){ stop(); return false; } return await start(); },
+    isOn(){ return playing; },
+    pause(){ if(playing && schedHandle){ clearTimeout(schedHandle); schedHandle=null; if(actx) actx.suspend && actx.suspend(); } },
+    resume(){ if(playing && !schedHandle && actx){ const r=actx.resume && actx.resume(); const go=()=>{ nextTime=actx.currentTime+0.1; sched(); }; if(r && r.then) r.then(go); else go(); } }
+  };
+})();
+const musicBtn=document.getElementById('musicBtn');
+musicBtn.onclick=async ()=>{
+  const on=await Music.toggle();
+  musicBtn.classList.toggle('on',on);
+  musicBtn.textContent = on?'🎵 Music on':'🎵 Music';
+};
+
+/* fireflies */
+(function(){ const sky=document.getElementById('sky');
+  for(let i=0;i<14;i++){ const fy=document.createElement('div'); fy.className='fly';
+    fy.style.left=Math.random()*100+'%'; fy.style.bottom='-10px';
+    fy.style.animationDuration=(11+Math.random()*12)+'s'; fy.style.animationDelay=(-Math.random()*16)+'s';
+    fy.style.transform=`scale(${.5+Math.random()*1.3})`;
+    if(Math.random()>.5){ fy.style.background='#9be8d4'; fy.style.boxShadow='0 0 8px 2px rgba(155,232,212,.6)'; }
+    sky.appendChild(fy);
+  }
+})();
+
+render();
+
+// Live-mode tick: re-render every 30s to catch midnight rollover and window expiry.
+// (Subsequent renders skip the appear animation, so this no longer flickers.)
+setInterval(()=>{ if(mode==='live') render(); }, 30000);
+
+// Re-render on tab refocus, and pause/resume music while hidden to dodge timer throttling.
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ Music.pause(); }
+  else { render(); Music.resume(); }
+});
+window.addEventListener('focus',render);
+
+/* ---------------- SERVICE WORKER ---------------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Service worker registration failed:',err));
+  });
+}
+</script>
+</body>
+</html>
