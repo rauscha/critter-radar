@@ -88,7 +88,16 @@
   .check.done{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
   .check.done::after{content:"✓"}
 
-  .emoji{font-size:1.7rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));flex-shrink:0}
+  .emoji{font-size:1.7rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));flex-shrink:0;
+    cursor:pointer;background:transparent;border:none;padding:0 2px;transition:transform .15s ease}
+  .emoji:hover{transform:scale(1.08)}
+  .emoji:active{transform:scale(.94)}
+  .card.tipopen .emoji{filter:drop-shadow(0 0 8px rgba(255,212,121,.55))}
+  .foodtip{max-height:0;opacity:0;overflow:hidden;margin-top:0;
+    transition:max-height .25s ease, opacity .2s ease, margin-top .2s ease;
+    font-size:.74rem;font-weight:700;color:var(--ink-soft);letter-spacing:.01em}
+  .foodtip b{color:var(--gold);font-weight:800}
+  .card.tipopen .foodtip{max-height:28px;opacity:1;margin-top:6px}
   .meta{flex:1;min-width:0}
   .nm{font-family:var(--font-display);font-weight:600;font-size:1.08rem;line-height:1.12}
   .sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
@@ -163,6 +172,21 @@
     z-index:40;opacity:0;pointer-events:none;transition:.3s;max-width:88vw;text-align:center}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 
+  /* Soft "back up your progress" nag — only appears when it's been ~14+ days since last backup */
+  .backup-banner{display:none;align-items:center;gap:10px;
+    background:rgba(255,212,121,.07);border:1px solid rgba(255,212,121,.32);
+    color:var(--ink);padding:10px 12px;border-radius:14px;margin:0 4px 14px;
+    font-size:.82rem;font-weight:600;line-height:1.3}
+  .backup-banner.show{display:flex}
+  .backup-banner .msg{flex:1;min-width:0}
+  .backup-banner .msg b{color:var(--gold)}
+  .backup-banner button{appearance:none;border:1px solid var(--glass-brd);background:transparent;
+    color:var(--ink);font-family:var(--font-body);font-weight:800;font-size:.74rem;
+    padding:6px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:.16s;flex-shrink:0}
+  .backup-banner button:hover{border-color:var(--gold);color:var(--gold)}
+  .backup-banner button.primary{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
+  .backup-banner button.primary:hover{filter:brightness(1.05);color:#231634}
+
   footer{margin:30px 6px 0;color:var(--ink-faint);font-size:.76rem;line-height:1.5}
   footer a{color:var(--ink-soft)}
   .note{background:var(--glass);border:1px solid var(--glass-brd);border-radius:14px;padding:13px 15px;margin:10px 4px 0}
@@ -193,6 +217,13 @@
     <button class="btn" id="openSettings">⚙ Biomes &amp; time</button>
     <button class="btn music" id="musicBtn" title="If you don't hear anything, flip the phone's silent switch off and turn the volume up">🎵 Music</button>
     <button class="btn alt" id="refreshBtn">↻ Refresh</button>
+  </div>
+
+  <!-- Backup reminder; only renders visible when last backup is older than the cadence. -->
+  <div class="backup-banner" id="backupBanner" role="status">
+    <div class="msg" id="backupMsg"></div>
+    <button class="primary" id="backupNow">Back up</button>
+    <button id="backupLater">Later</button>
   </div>
 
   <div class="count" id="count"></div>
@@ -254,6 +285,23 @@
 <script>
 const A="all", _=null;
 const PM=[[720,1440]], AM=[[0,720]]; // "12PM-12AM" and "12AM-12PM"
+
+// Inline capybara icon — no Unicode capybara emoji exists (🦫 is officially "beaver"
+// and renders as tofu on Windows). Sized in em so it scales with the parent's font-size:
+// fills the 1.7rem emoji slot on cards, and the ~1rem slot in Settings, identically.
+const SVG_CAPY = '<svg viewBox="0 0 80 56" width="1.35em" height="1em" style="display:inline-block;vertical-align:-.12em" aria-label="Capybara">'
+  + '<rect x="16" y="40" width="6" height="12" rx="2" fill="#6b4a30"/>'
+  + '<rect x="50" y="40" width="6" height="12" rx="2" fill="#6b4a30"/>'
+  + '<ellipse cx="36" cy="32" rx="30" ry="14" fill="#a07a52"/>'
+  + '<ellipse cx="36" cy="38" rx="24" ry="7" fill="#8a6541" opacity=".55"/>'
+  + '<ellipse cx="64" cy="22" rx="11" ry="9" fill="#a07a52"/>'
+  + '<ellipse cx="58" cy="13" rx="3" ry="3.5" fill="#7a5635"/>'
+  + '<ellipse cx="74" cy="24" rx="4.5" ry="3.2" fill="#8a6541"/>'
+  + '<circle cx="76" cy="23" r="0.9" fill="#2a1810"/>'
+  + '<circle cx="65" cy="20" r="1.7" fill="#1a0d05"/>'
+  + '<circle cx="65.6" cy="19.4" r="0.55" fill="#fff"/>'
+  + '</svg>';
+
 const PACKS = [
   {id:"base",  name:"Base game"},
   {id:"isle",  name:"Eternity Isle (A Rift in Time)"},
@@ -265,19 +313,19 @@ const BIOMES = [
   {id:"meadow",pack:"base", name:"Peaceful Meadow", critter:"Rabbits", emoji:"🐰", approach:"Chase to tag, then it stops", food:"Carrot"},
   {id:"beach", pack:"base", name:"Dazzle Beach", critter:"Sea Turtles", emoji:"🐢", approach:"Approach slowly", food:"Seaweed"},
   {id:"forest",pack:"base", name:"Forest of Valor", critter:"Raccoons", emoji:"🦝", approach:"Approach slowly", food:"Blueberry"},
-  {id:"glade", pack:"base", name:"Glade of Trust", critter:"Crocodiles", emoji:"🐊", approach:"Approach slowly", food:"Any fish"},
-  {id:"plateau",pack:"base",name:"Sunlit Plateau", critter:"Sunbirds", emoji:"🐦", approach:"Approach slowly", food:"Flowers"},
-  {id:"heights",pack:"base",name:"Frosted Heights", critter:"Foxes", emoji:"🦊", approach:"Approach slowly", food:"Any fish"},
-  {id:"forgot", pack:"base",name:"Forgotten Lands", critter:"Ravens", emoji:"🐦‍⬛", approach:"Approach slowly", food:"Any fish"},
-  {id:"landing",pack:"isle",name:"Ancient's Landing", critter:"Monkeys", emoji:"🐒", approach:"Approach slowly", food:"Fruit"},
-  {id:"dunes",  pack:"isle",name:"Glittering Dunes", critter:"Cobras", emoji:"🐍", approach:"Approach slowly", food:"—"},
-  {id:"tangle", pack:"isle",name:"Wild Tangle", critter:"Capybaras", emoji:"🦫", approach:"Very approachable", food:"—"},
+  {id:"glade", pack:"base", name:"Glade of Trust", critter:"Crocodiles", emoji:"🐊", approach:"Approach slowly", food:"Lobster"},
+  {id:"plateau",pack:"base",name:"Sunlit Plateau", critter:"Sunbirds", emoji:"🐦", approach:"Approach slowly", food:"Color-matched flower"},
+  {id:"heights",pack:"base",name:"Frosted Heights", critter:"Foxes", emoji:"🦊", approach:"Approach slowly", food:"White Sturgeon"},
+  {id:"forgot", pack:"base",name:"Forgotten Lands", critter:"Ravens", emoji:"🐦‍⬛", approach:"Approach slowly", food:"Any 5★ meal"},
+  {id:"landing",pack:"isle",name:"Ancient's Landing", critter:"Monkeys", emoji:"🐒", approach:"Approach slowly", food:"Any 5★ meal"},
+  {id:"dunes",  pack:"isle",name:"Glittering Dunes", critter:"Cobras", emoji:"🐍", approach:"Approach slowly", food:"Egg"},
+  {id:"tangle", pack:"isle",name:"Wild Tangle", critter:"Capybaras", emoji:SVG_CAPY, approach:"Very approachable", food:"Cabbage"},
   {id:"ever",   pack:"vale",name:"Everafter", critter:"Baby Dragons", emoji:"🐉", approach:"Approach slowly", food:"Pure Ice or Magma"},
   {id:"myth",   pack:"vale",name:"Mythopia", critter:"Baby Pegasi", emoji:"🦄", approach:"Approach slowly", food:"4★ veggie meal"},
   {id:"bind",   pack:"vale",name:"The Bind", critter:"Owls", emoji:"🦉", approach:"Approach slowly", food:"Barley"},
-  {id:"alps",   pack:"wish",name:"Wishing Alps", critter:"Geese", emoji:"🦢", approach:"Approach slowly", food:"—"},
-  {id:"gulch",  pack:"wish",name:"Glamour Gulch", critter:"Skunks", emoji:"🦨", approach:"Approach slowly", food:"—"},
-  {id:"pixie",  pack:"wish",name:"Pixie Acres", critter:"Bees", emoji:"🐝", approach:"Bring Honey Coral", food:"Honey"},
+  {id:"alps",   pack:"wish",name:"Wishing Alps", critter:"Geese", emoji:"🦢", approach:"Approach slowly", food:"Red Currant"},
+  {id:"gulch",  pack:"wish",name:"Glamour Gulch", critter:"Skunks", emoji:"🦨", approach:"Approach slowly", food:"Pincushion Peach"},
+  {id:"pixie",  pack:"wish",name:"Pixie Acres", critter:"Bees", emoji:"🐝", approach:"Bring Honey Coral", food:"Honey Coral"},
 ];
 // CRITTERS: {biome, name, emoji, sched[7], weather?}
 const C = [
@@ -311,12 +359,12 @@ const C = [
   {b:"glade", n:"Golden Crocodile",s:[AM,_,A,_,A,A,_]},
   {b:"glade", n:"Pink Crocodile",  s:[_,_,_,_,_,_,[[360,720]]]},
   {b:"glade", n:"Red Crocodile",   s:[PM,_,A,A,_,_,A]},
-  // PLATEAU
-  {b:"plateau",n:"Emerald Sunbird",s:[PM,_,A,A,_,_,A]},
-  {b:"plateau",n:"Golden Sunbird", s:[AM,_,A,_,A,A,_]},
-  {b:"plateau",n:"Orchid Sunbird", s:[_,_,_,_,_,[[540,900]],_]},
-  {b:"plateau",n:"Red Sunbird",    s:[PM,A,_,_,A,_,A]},
-  {b:"plateau",n:"Turquoise Sunbird",s:[AM,A,_,A,_,A,_]},
+  // PLATEAU — each Sunbird favours a different colour-matched flower
+  {b:"plateau",n:"Emerald Sunbird",s:[PM,_,A,A,_,_,A], food:"Green Passion Lily"},
+  {b:"plateau",n:"Golden Sunbird", s:[AM,_,A,_,A,A,_], food:"Orange Houseleek"},
+  {b:"plateau",n:"Orchid Sunbird", s:[_,_,_,_,_,[[540,900]],_], food:"Pink Houseleek"},
+  {b:"plateau",n:"Red Sunbird",    s:[PM,A,_,_,A,_,A], food:"Red Bromeliad"},
+  {b:"plateau",n:"Turquoise Sunbird",s:[AM,A,_,A,_,A,_], food:"Pink Bromeliad"},
   // HEIGHTS
   {b:"heights",n:"Black Fox",      s:[PM,_,A,A,_,_,A]},
   {b:"heights",n:"Blue Fox",       s:[AM,_,A,_,A,A,_]},
@@ -355,11 +403,13 @@ const C = [
   {b:"ever",  n:"Green Baby Dragon",s:[[[600,1080]],[[600,1080]],[[600,1080]],[[600,1080]],[[600,1080]],_,_]},
   {b:"ever",  n:"Purple Baby Dragon",s:[AM,AM,AM,AM,AM,AM,AM]},
   {b:"ever",  n:"Red Baby Dragon", s:[A,_,_,_,_,_,A]},
+  {b:"ever",  n:"Teal Baby Dragon",s:[A,_,_,A,A,A,A]},  // off Mon/Tue; orange eyes vs. Blue
   // MYTHOPIA (Pegasi)
   {b:"myth",  n:"Blue Pegasus",    s:[_,A,A,A,_,_,_]},
   {b:"myth",  n:"Peach Pegasus",   s:[[[360,840]],[[360,840]],[[360,840]],[[360,840]],[[360,840]],[[360,840]],[[360,840]]]},
   {b:"myth",  n:"Pink Pegasus",    s:[A,_,_,_,A,A,A]},
   {b:"myth",  n:"Yellow Pegasus",  s:[_,_,[[1080,1440]],[[1080,1440]],[[1080,1440]],[[1080,1440]],[[1080,1440]]]},
+  {b:"myth",  n:"Black Pegasus",   s:[A,_,_,A,A,A,A]},  // off Mon/Tue
   // BIND (Owls)
   {b:"bind",  n:"Brown Owl",       s:[_,A,A,A,A,A,_]},
   {b:"bind",  n:"Dark Owl",        s:[A,_,_,_,_,_,A]},
@@ -376,6 +426,7 @@ const C = [
   {b:"gulch", n:"Patterned Skunk", s:[A,A,A,A,A,A,A], weather:"Only in heavy rain or cloudy weather"},
   {b:"gulch", n:"Skunk",           s:[AM,AM,AM,AM,AM,AM,AM]},
   {b:"gulch", n:"White Skunk",     s:[PM,_,PM,_,PM,_,PM]},
+  {b:"gulch", n:"Professor Mouffette",s:[A,A,A,A,A,A,A], q:1},  // quest unlock; always present after
   // PIXIE (Bees)
   {b:"pixie", n:"Blue Sweet Bee",  s:[A,A,A,A,A,A,A], weather:"Only in clear or partly cloudy weather"},
   {b:"pixie", n:"Pink Sweet Bee",  s:[A,A,A,A,A,A,A]},
@@ -435,6 +486,15 @@ if(typeof customDow!=='number' || customDow<0 || customDow>6) customDow = new Da
 let customTime = store.get('customTime','10:00');
 if(typeof customTime!=='string' || !/^\d{1,2}:\d{2}$/.test(customTime)) customTime='10:00';
 let hideFed = !!store.get('hideFed', false);
+// Backup reminder state
+let lastBackup = store.get('lastBackup', null);           // ms epoch, or null if never backed up
+let installedAt = store.get('installedAt', null);          // ms epoch of first ever launch
+if(typeof installedAt!=='number'){ installedAt=Date.now(); store.set('installedAt',installedAt); }
+let backupSnoozeUntil = store.get('backupSnoozeUntil', 0); // ms epoch; banner hidden until this time
+if(typeof backupSnoozeUntil!=='number') backupSnoozeUntil=0;
+const BACKUP_CADENCE_DAYS = 14;
+const BACKUP_SNOOZE_DAYS = 3;
+const DAY_MS = 86400000;
 let goal = store.get('goal', 8);
 if(typeof goal!=='number' || goal<2 || goal>20) goal=8;
 // progress: key "biome|name" -> {count:int, fedDate:"YYYY-MM-DD"|null, companion:bool}
@@ -458,6 +518,8 @@ function setCompanion(c,val){ rec(c).companion=val; saveProgress(); render(); }
 
 /* ---------------- RENDER ---------------- */
 let firstRender = true;   // controls one-time appear animation; subsequent renders don't restart it
+const expanded = new Set();   // set of keyOf(c) for cards currently showing the food tip
+function foodFor(c){ return c.food || (BIO[c.b] && BIO[c.b].food) || '—'; }
 function refTime(){
   if(mode==='custom'){ const [h,m]=customTime.split(':').map(Number); return {dow:customDow, mins:h*60+m}; }
   const d=new Date(); return {dow:d.getDay(), mins:d.getHours()*60+d.getMinutes()};
@@ -516,8 +578,37 @@ function render(){
   document.getElementById('contextNote').innerHTML =
     `Still hunting <b style="color:var(--gold)">${tracked}</b> variants across <b style="color:var(--gold)">${BIOMES.filter(b=>enabled[b.id]).length}</b> biomes · <b style="color:var(--gold)">${col.length}</b> collected. Unfed critters are ranked by who vanishes soonest; “All&nbsp;day” sits last; fed ones drop to the pile below until midnight.`;
 
+  refreshBackupBanner();
   firstRender = false;
 }
+
+/* ---------------- BACKUP REMINDER BANNER ---------------- */
+function backupAgeDays(){
+  if(typeof lastBackup === 'number'){ return Math.floor((Date.now() - lastBackup) / DAY_MS); }
+  // Never backed up — measure from install instead
+  return Math.floor((Date.now() - installedAt) / DAY_MS);
+}
+function backupDue(){
+  if(Date.now() < backupSnoozeUntil) return false;
+  return backupAgeDays() >= BACKUP_CADENCE_DAYS;
+}
+function refreshBackupBanner(){
+  const el = document.getElementById('backupBanner');
+  if(!el) return;
+  if(!backupDue()){ el.classList.remove('show'); return; }
+  const days = backupAgeDays();
+  const msg = (typeof lastBackup === 'number')
+    ? `Last backup was <b>${days} days</b> ago. iOS can clear app data after a week of disuse — back up to iCloud or Files?`
+    : `Heads up: you haven't backed up your progress yet. iOS can clear app data after about a week of disuse. One tap to save to iCloud or Files.`;
+  document.getElementById('backupMsg').innerHTML = msg;
+  el.classList.add('show');
+}
+document.getElementById('backupNow').onclick = ()=>{ shareBackup(); };
+document.getElementById('backupLater').onclick = ()=>{
+  backupSnoozeUntil = Date.now() + BACKUP_SNOOZE_DAYS * DAY_MS;
+  store.set('backupSnoozeUntil', backupSnoozeUntil);
+  refreshBackupBanner();
+};
 
 function card(c,ev,i,kind){
   const b=BIO[c.b], r=rec(c);
@@ -528,7 +619,8 @@ function card(c,ev,i,kind){
   else if(kind==='up'){ t='up'; right=`<div class="leaves">in ${fmtDur(ev.in)}</div><div class="at">arrives ${fmtClock(ev.startAt)}</div>`; }
   else if(ev.state==='allday'){ t='calm'; right=`<div class="leaves">All&nbsp;day</div><div class="at">no rush</div>`; }
   else { t=tier(ev.remaining); right=`<div class="leaves">${fmtDur(ev.remaining)}</div><div class="at">until ${fmtClock(ev.endAt)}</div>`; }
-  li.className=`card t-${t}`+((kind==='done')?' faded':'')+(firstRender?' appear':'');
+  const isOpen = expanded.has(keyOf(c));
+  li.className=`card t-${t}`+((kind==='done')?' faded':'')+(isOpen?' tipopen':'')+(firstRender?' appear':'');
   if(firstRender) li.style.animationDelay=(i*0.03)+'s';
 
   let left;
@@ -557,8 +649,11 @@ function card(c,ev,i,kind){
     </div>`;
   }
 
-  li.innerHTML = `${left}<div class="emoji">${b.emoji}</div>
-    <div class="meta"><div class="nm">${c.n}</div><div class="sub">${chips.join('')}</div>${prog}</div>
+  const food = foodFor(c);
+  li.innerHTML = `${left}<button class="emoji" data-act="tip" aria-label="Favorite food">${b.emoji}</button>
+    <div class="meta"><div class="nm">${c.n}</div><div class="sub">${chips.join('')}</div>
+      <div class="foodtip">💡 Likes <b>${food}</b></div>
+      ${prog}</div>
     ${right?`<div class="right">${right}</div>`:''}`;
 
   li.querySelectorAll('[data-act]').forEach(el=>{
@@ -567,6 +662,11 @@ function card(c,ev,i,kind){
       if(a==='fed') toggleFed(c);
       else if(a==='companion') setCompanion(c,true);
       else if(a==='restore') setCompanion(c,false);
+      else if(a==='tip'){
+        const k=keyOf(c);
+        if(expanded.has(k)){ expanded.delete(k); li.classList.remove('tipopen'); }
+        else { expanded.add(k); li.classList.add('tipopen'); }
+      }
     });
   });
   return li;
@@ -637,19 +737,48 @@ collapser('colHead','colList',true);
 collapser('fedHead','fedList',false);
 
 /* ---------------- EXPORT / IMPORT ---------------- */
-document.getElementById('exportBtn').onclick=()=>{
+// Build the JSON payload from current state — used by both Export button and the backup-due banner.
+function buildBackupBlob(){
   const data={
     app:'critter-radar', version:1, exportedAt:new Date().toISOString(),
     progress, enabled, goal, hideFed, customDow, customTime, timeMode:mode
   };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  return { json: JSON.stringify(data,null,2), filename: `critter-radar-backup-${todayStr()}.json` };
+}
+function markBackedUp(){
+  lastBackup = Date.now(); store.set('lastBackup', lastBackup);
+  backupSnoozeUntil = 0;   store.set('backupSnoozeUntil', 0);
+  refreshBackupBanner();
+}
+// Prefer the iOS native share sheet (one-tap "Save to Files → iCloud Drive"); fall back to download.
+async function shareBackup(){
+  const { json, filename } = buildBackupBlob();
+  // Web Share API with files — iOS Safari 15+
+  if(navigator.canShare){
+    try {
+      const file = new File([json], filename, { type: 'application/json' });
+      if(navigator.canShare({ files: [file] })){
+        await navigator.share({ files:[file], title:'Critter Radar backup', text:'Critter Radar progress backup' });
+        markBackedUp();
+        toast('Backup saved — thanks!');
+        return;
+      }
+    } catch(err){
+      if(err && err.name === 'AbortError') return;     // user cancelled the share sheet
+      console.warn('Share failed, falling back to download:', err);
+    }
+  }
+  // Fallback: classic Blob download (desktops, older iOS, etc.)
+  const blob=new Blob([json],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`critter-radar-backup-${todayStr()}.json`;
+  a.href=url; a.download=filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),1500);
+  markBackedUp();
   toast('Backup downloaded');
-};
+}
+document.getElementById('exportBtn').onclick = shareBackup;
 const importFile=document.getElementById('importFile');
 document.getElementById('importBtn').onclick=()=>importFile.click();
 importFile.onchange=()=>{
@@ -814,6 +943,17 @@ window.addEventListener('focus',render);
 
 /* ---------------- SERVICE WORKER ---------------- */
 if('serviceWorker' in navigator){
+  // Remember whether a worker was already in charge when this page loaded.
+  // If yes, any future controller change = a new version took over → reload to show it.
+  // If no, this is the very first install on this device; the controllerchange that fires
+  // a moment from now is the initial handoff and we should NOT reload (we already show v1 content).
+  const hadController = !!navigator.serviceWorker.controller;
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!hadController || refreshing) return;
+    refreshing = true;
+    location.reload();
+  });
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Service worker registration failed:',err));
   });
