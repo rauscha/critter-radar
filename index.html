@@ -68,9 +68,10 @@
   .count b{color:var(--gold)}
 
   ul{list-style:none}
-  .card{position:relative;display:flex;align-items:center;gap:12px;
+  .card{position:relative;display:flex;align-items:center;gap:12px;cursor:pointer;
     background:var(--glass);border:1px solid var(--glass-brd);border-radius:18px;
     padding:13px 14px 13px 14px;margin-bottom:11px;backdrop-filter:blur(10px);overflow:hidden}
+  .card:hover{border-color:rgba(255,212,121,.3)}
   .card.appear{animation:rise .5s ease both}
   .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:5px 0 0 5px}
   .card.t-crit::before{background:var(--crit);box-shadow:0 0 16px 2px var(--crit-glow)}
@@ -192,6 +193,95 @@
   .note{background:var(--glass);border:1px solid var(--glass-brd);border-radius:14px;padding:13px 15px;margin:10px 4px 0}
 
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---- Quick filter (lightweight focus on top of enabled biomes) ---- */
+  .filterbar{display:flex;gap:7px;overflow-x:auto;margin:0 4px 16px;padding-bottom:2px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .filterbar::-webkit-scrollbar{display:none}
+  .fchip{appearance:none;border:1px solid var(--glass-brd);background:var(--glass);color:var(--ink-soft);
+    font-family:var(--font-body);font-weight:800;font-size:.78rem;padding:7px 13px;border-radius:999px;
+    cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.16s;display:inline-flex;align-items:center;gap:5px}
+  .fchip:hover{border-color:var(--gold);color:var(--gold)}
+  .fchip.active{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
+  .fchip .fem{font-size:.95rem;line-height:1}
+
+  /* ---- Detail overlay with swipeable panels ---- */
+  .detail{position:fixed;left:0;right:0;bottom:0;z-index:31;max-width:560px;margin:0 auto;
+    background:linear-gradient(180deg,#2a1f5c,#1c1442);border:1px solid var(--glass-brd);
+    border-radius:22px 22px 0 0;padding:16px 0 calc(14px + env(safe-area-inset-bottom));
+    transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+    max-height:90vh;display:flex;flex-direction:column}
+  .detail.open{transform:translateY(0)}
+  .detail-head{display:flex;align-items:center;gap:10px;padding:0 18px 12px}
+  .dtitle{flex:1;min-width:0;font-family:var(--font-display);font-weight:900;font-size:1.32rem;line-height:1.1;
+    display:flex;align-items:center;gap:10px}
+  .dtitle .demoji{font-size:1.5rem;flex-shrink:0}
+  .dclose{appearance:none;border:1px solid var(--glass-brd);background:var(--glass);color:var(--ink);
+    width:34px;height:34px;border-radius:50%;font-size:.95rem;font-weight:800;cursor:pointer;flex-shrink:0}
+  .dclose:hover{border-color:var(--gold);color:var(--gold)}
+  .dviewport{overflow:hidden;flex:1;min-height:0}
+  .dtrack{display:flex;width:300%;height:100%;transition:transform .28s cubic-bezier(.2,.8,.2,1);
+    will-change:transform}
+  .dtrack.dragging{transition:none}
+  .dpanel{width:33.3333%;flex-shrink:0;height:100%;overflow-y:auto;padding:2px 18px 10px;
+    -webkit-overflow-scrolling:touch}
+  .dpager{display:flex;align-items:center;gap:12px;padding:12px 18px 0}
+  .dnav{appearance:none;border:1px solid var(--glass-brd);background:var(--glass);color:var(--ink);
+    width:38px;height:38px;border-radius:50%;font-size:1.3rem;font-weight:800;cursor:pointer;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;line-height:1;transition:.16s}
+  .dnav:hover{border-color:var(--gold);color:var(--gold)}
+  .dnav:disabled{opacity:.28;cursor:default;border-color:var(--glass-brd);color:var(--ink-faint)}
+  .dpcenter{flex:1;text-align:center;min-width:0}
+  .ddots{display:flex;gap:7px;justify-content:center}
+  .ddots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.22);transition:.2s}
+  .ddots span.on{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+  .dlabel{font-size:.7rem;font-weight:800;letter-spacing:.05em;color:var(--ink-soft);margin-top:6px;text-transform:uppercase}
+
+  /* detail — main panel */
+  .dstatus{font-family:var(--font-display);font-weight:800;font-size:1.04rem;padding:12px 14px;border-radius:14px;
+    background:var(--glass);border:1px solid var(--glass-brd);margin-bottom:13px;line-height:1.3}
+  .dstatus.t-crit{color:var(--crit)} .dstatus.t-soon{color:var(--soon)}
+  .dstatus.t-plenty{color:var(--plenty)}
+  .dstatus.t-calm{color:var(--calm)} .dstatus.t-up{color:var(--ink-soft)}
+  .dweather{font-size:.74rem;font-weight:700;color:var(--ink-soft);margin-top:5px}
+  .dsub{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .drow{display:flex;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--glass-brd)}
+  .dk{font-size:.78rem;font-weight:700;color:var(--ink-faint);flex-shrink:0}
+  .dv{font-size:.9rem;font-weight:800;color:var(--ink);text-align:right}
+  .dprogwrap{margin-top:14px}
+  .dbig{appearance:none;width:100%;margin-top:10px;border:1px solid var(--glass-brd);background:var(--glass);
+    color:var(--ink);font-family:var(--font-body);font-weight:800;font-size:.9rem;padding:12px;border-radius:13px;
+    cursor:pointer;transition:.16s}
+  .dbig:hover{border-color:var(--gold);color:var(--gold)}
+  .dbig.on{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
+  .dhint{color:var(--ink-faint);font-size:.74rem;margin-top:16px;line-height:1.4}
+
+  /* detail — week calendar panel */
+  .wk{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+  .wkrow{display:flex;align-items:center;gap:10px}
+  .wkday{width:40px;font-weight:800;font-size:.78rem;color:var(--ink-soft);flex-shrink:0}
+  .wkrow.today .wkday{color:var(--gold)}
+  .wkbar{position:relative;flex:1;height:15px;border-radius:8px;background:rgba(255,255,255,.08);overflow:hidden}
+  .wkrow.today .wkbar{box-shadow:0 0 0 1px rgba(255,212,121,.35)}
+  .wkseg{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,var(--gold-deep),var(--gold));opacity:.9}
+  .wkrow.off .wkbar{opacity:.45}
+  .wknow{position:absolute;top:0;bottom:0;width:2px;background:var(--calm);box-shadow:0 0 6px var(--calm);z-index:2}
+  .wkaxis{display:flex;justify-content:space-between;margin:8px 0 0;padding-left:50px;
+    color:var(--ink-faint);font-size:.62rem;font-weight:700}
+
+  /* detail — times list panel */
+  .tl{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+  .tlrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 13px;
+    border:1px solid var(--glass-brd);border-radius:12px;background:var(--glass)}
+  .tlrow.today{border-color:rgba(255,212,121,.4);background:rgba(255,212,121,.06)}
+  .tlrow.off{opacity:.5}
+  .tlday{font-weight:800;font-size:.86rem;flex-shrink:0}
+  .tlrow.today .tlday{color:var(--gold)}
+  .tltimes{font-size:.82rem;color:var(--ink-soft);font-weight:600;text-align:right}
+
+  @media (prefers-reduced-motion: reduce){
+    .detail,.dtrack{transition:none}
+  }
 </style>
 </head>
 <body>
@@ -218,6 +308,10 @@
     <button class="btn music" id="musicBtn" title="If you don't hear anything, flip the phone's silent switch off and turn the volume up">🎵 Music</button>
     <button class="btn alt" id="refreshBtn">↻ Refresh</button>
   </div>
+
+  <!-- Lightweight focus filter: narrows the view to one biome. Layers on top of the
+       Settings biome toggles (which still decide what's tracked at all). -->
+  <div class="filterbar" id="filterbar"></div>
 
   <!-- Backup reminder; only renders visible when last backup is older than the cadence. -->
   <div class="backup-banner" id="backupBanner" role="status">
@@ -278,6 +372,30 @@
   <input type="file" id="importFile" accept="application/json,.json" style="display:none">
 
   <button class="btn" id="closeSettings" style="width:100%;justify-content:center;margin-top:20px">Done</button>
+</div>
+
+<!-- Critter detail overlay: tap a card to open. Swipe (or use ‹ ›) between three panels:
+     other times this week · details · week calendar. -->
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-label="Critter details">
+  <div class="detail-head">
+    <div class="dtitle" id="dTitle"></div>
+    <button class="dclose" id="dClose" aria-label="Close">✕</button>
+  </div>
+  <div class="dviewport" id="dViewport">
+    <div class="dtrack" id="dTrack">
+      <section class="dpanel" id="dPanelList"></section>
+      <section class="dpanel" id="dPanelMain"></section>
+      <section class="dpanel" id="dPanelCal"></section>
+    </div>
+  </div>
+  <div class="dpager">
+    <button class="dnav" id="dPrev" aria-label="Previous panel">‹</button>
+    <div class="dpcenter">
+      <div class="ddots" id="dDots"><span></span><span></span><span></span></div>
+      <div class="dlabel" id="dLabel"></div>
+    </div>
+    <button class="dnav" id="dNext" aria-label="Next panel">›</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -469,6 +587,24 @@ function fmtClock(min){
 function fmtDur(min){ const h=Math.floor(min/60),m=min%60; if(h<=0)return `${m}m`; if(m===0)return `${h}h`; return `${h}h ${m}m`; }
 function tier(rem){ if(rem<60)return'crit'; if(rem<180)return'soon'; return'plenty'; }
 function pad2(n){ return String(n).padStart(2,'0'); }
+// Schedule -> view helpers for the detail panels.
+// dayWindows: split a day's entry into non-wrapping [start,end] segments (minutes) for the calendar bars.
+function dayWindows(entry){
+  if(entry==null) return {off:true, allday:false, segs:[]};
+  if(entry==='all') return {off:false, allday:true, segs:[[0,1440]]};
+  const segs=[];
+  for(const [s,e] of entry){
+    if(e>s) segs.push([s,e]);
+    else { segs.push([s,1440]); if(e>0) segs.push([0,e]); }   // wraps midnight -> two segments
+  }
+  return {off:false, allday:false, segs};
+}
+// windowText: human-readable times for one day's entry, used by the list panel.
+function windowText(entry){
+  if(entry==null) return '—';
+  if(entry==='all') return 'All day';
+  return entry.map(([s,e])=>`${fmtClock(s)} – ${fmtClock(e)}`).join(', ');
+}
 
 /* ---------------- STATE / STORAGE ---------------- */
 const mem={};
@@ -500,6 +636,9 @@ if(typeof goal!=='number' || goal<2 || goal>20) goal=8;
 // progress: key "biome|name" -> {count:int, fedDate:"YYYY-MM-DD"|null, companion:bool}
 let progress = store.get('progress', {});
 if(typeof progress!=='object' || progress===null) progress={};
+// Quick filter: 'all' or a biome id. A view-only focus layered on top of enabled biomes.
+let filterBiome = store.get('filterBiome', 'all');
+if(typeof filterBiome!=='string') filterBiome='all';
 
 const keyOf = c => c.b + '|' + c.n;
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
@@ -532,6 +671,7 @@ function render(){
 
   const now=[], up=[], fed=[], col=[];
   for(const c of C){
+    if(filterBiome!=='all' && c.b!==filterBiome) continue;   // quick-filter focus
     if(isCompanion(c)){ if(enabled[c.b]) col.push(c); continue; }
     if(!enabled[c.b]) continue;
     if(isFedToday(c)){ fed.push(c); continue; }
@@ -553,7 +693,9 @@ function render(){
 
   // NOW
   const nl=document.getElementById('nowList'); nl.innerHTML='';
-  if(!now.length){ nl.innerHTML='<div class="empty">Nothing left to find right now in your enabled biomes. Check “Coming up,” or you’ve fed everything that’s out — nice.</div>'; }
+  if(!now.length){ nl.innerHTML='<div class="empty">'+(filterBiome!=='all'
+      ? `Nothing out in ${BIO[filterBiome].name} right now. Check “Coming up,” or tap <b>All</b> to widen the view.`
+      : 'Nothing left to find right now in your enabled biomes. Check “Coming up,” or you’ve fed everything that’s out — nice.')+'</div>'; }
   now.forEach((o,i)=>nl.appendChild(card(o.c,o.ev,i,'now')));
 
   // UP
@@ -669,6 +811,8 @@ function card(c,ev,i,kind){
       }
     });
   });
+  // Tap anywhere else on the card opens the detail overlay (inner buttons stopPropagation above).
+  li.addEventListener('click',()=>openDetail(c));
   return li;
 }
 
@@ -687,7 +831,7 @@ function openSheet(){ buildToggles(); sheet.classList.add('open'); scrim.classLi
 function closeSheet(){ sheet.classList.remove('open'); scrim.classList.remove('open'); }
 document.getElementById('openSettings').onclick=openSheet;
 document.getElementById('closeSettings').onclick=closeSheet;
-scrim.onclick=closeSheet;
+scrim.onclick=()=>{ closeSheet(); closeDetail(); };
 document.getElementById('refreshBtn').onclick=render;
 
 function buildToggles(){
@@ -699,7 +843,7 @@ function buildToggles(){
       const row=document.createElement('div'); row.className='tog';
       row.innerHTML=`<div class="lbl">${b.emoji} ${b.name}<small>${b.critter} · feed: ${b.food}</small></div>`;
       const sw=document.createElement('div'); sw.className='sw'+(enabled[b.id]?' on':'');
-      sw.onclick=()=>{ enabled[b.id]=!enabled[b.id]; sw.classList.toggle('on'); store.set('enabledBiomes',enabled); render(); };
+      sw.onclick=()=>{ enabled[b.id]=!enabled[b.id]; sw.classList.toggle('on'); store.set('enabledBiomes',enabled); buildFilterBar(); render(); };
       row.appendChild(sw); host.appendChild(row);
     }
   }
@@ -802,6 +946,7 @@ importFile.onchange=()=>{
       if(typeof data.goal==='number'){ goal=Math.max(2,Math.min(20,data.goal)); store.set('goal',goal); goalVal.textContent=goal; }
       if(typeof data.hideFed==='boolean'){ hideFed=data.hideFed; store.set('hideFed',hideFed); paintHide(); }
       firstRender = true;     // animate the new state in
+      buildFilterBar();       // enabled biomes may have changed
       render();
       toast(`Imported · ${restored} critter records restored`);
     }catch(e){ toast('Could not import: ' + (e.message||'bad file')); }
@@ -809,6 +954,181 @@ importFile.onchange=()=>{
   };
   reader.readAsText(f);
 };
+
+/* ---------------- QUICK FILTER ---------------- */
+function buildFilterBar(){
+  const host=document.getElementById('filterbar');
+  // Drop a stale focus if its biome is no longer enabled in Settings.
+  if(filterBiome!=='all' && !enabled[filterBiome]){ filterBiome='all'; store.set('filterBiome','all'); }
+  host.innerHTML='';
+  const chip=(id,label,emoji)=>{
+    const b=document.createElement('button');
+    b.className='fchip'+(filterBiome===id?' active':'');
+    b.innerHTML=(emoji?`<span class="fem">${emoji}</span>`:'')+label;
+    b.onclick=()=>{
+      filterBiome=id; store.set('filterBiome',id);
+      // Update active state in place (don't rebuild — keeps the row's scroll position).
+      [...host.children].forEach(ch=>ch.classList.toggle('active', ch===b));
+      render();
+    };
+    host.appendChild(b);
+  };
+  chip('all','All','✨');
+  for(const b of BIOMES){ if(enabled[b.id]) chip(b.id, b.name, b.emoji); }
+}
+
+/* ---------------- DETAIL OVERLAY (swipeable panels) ---------------- */
+const detail=document.getElementById('detail');
+const dTrack=document.getElementById('dTrack'), dViewport=document.getElementById('dViewport');
+const dTitle=document.getElementById('dTitle'), dDots=document.getElementById('dDots'),
+      dLabel=document.getElementById('dLabel'), dPrev=document.getElementById('dPrev'), dNext=document.getElementById('dNext');
+const D_LABELS=['Other times this week','Details','This week · calendar'];
+let detailC=null, detailIdx=1, pushedState=false;
+
+function setDetailIdx(i){
+  detailIdx=Math.max(0,Math.min(2,i));
+  dTrack.style.transform=`translateX(${-detailIdx*(100/3)}%)`;
+  [...dDots.children].forEach((d,k)=>d.classList.toggle('on',k===detailIdx));
+  dLabel.textContent=D_LABELS[detailIdx];
+  dPrev.disabled=detailIdx===0; dNext.disabled=detailIdx===2;
+}
+
+function detailMainHTML(c){
+  const b=BIO[c.b], r=rec(c), {dow,mins}=refTime();
+  const ev=evaluate(c.s[dow],mins);
+  let status, st='up';
+  if(isCompanion(c)){ st='calm'; status=`Collected companion 🏆 · fed ${r.count}×`; }
+  else if(ev.state==='allday'){ st='calm'; status='Out all day today · no rush'; }
+  else if(ev.state==='active'){ st=tier(ev.remaining); status=`Out now · leaves in ${fmtDur(ev.remaining)} (until ${fmtClock(ev.endAt)})`; }
+  else if(ev.state==='upcoming'){ st='up'; status=`Arrives ${fmtClock(ev.startAt)} · in ${fmtDur(ev.in)}`; }
+  else { st='up'; status='Not out today'; }
+  const chips=[`<span class="chip">${b.name}</span>`,`<span class="chip dlc">${b.critter}</span>`];
+  if(b.pack!=='base') chips.push(`<span class="chip dlc">${PACKS.find(p=>p.id===b.pack).name.split(' (')[0]}</span>`);
+  if(c.q) chips.push(`<span class="chip dlc">quest</span>`);
+  const pct=Math.max(0,Math.min(100,Math.round(r.count/goal*100))), ready=r.count>=goal;
+  let prog;
+  if(isCompanion(c)){
+    prog=`<div class="prog"><span class="tally">fed <b>${r.count}</b>× · collected 🏆</span>
+      <button class="mini" data-act="restore">↩ Bring back</button></div>`;
+  } else {
+    prog=`<div class="prog"><span class="tally">×<b>${r.count}</b></span>
+        <span class="pbar"><span class="pfill" style="width:${pct}%"></span></span>
+        <button class="mini${ready?' ready':''}" data-act="companion">🏆 ${ready?'Collect?':'Got it'}</button></div>
+      <button class="dbig${isFedToday(c)?' on':''}" data-act="fed">${isFedToday(c)?'✓ Fed today — tap to undo':'Mark fed today'}</button>`;
+  }
+  return `<div class="dstatus t-${st}">${status}${c.weather?`<div class="dweather">🌦 ${c.weather}</div>`:''}</div>
+    <div class="dsub">${chips.join('')}</div>
+    <div class="drow"><span class="dk">Favourite food</span><span class="dv">💡 ${foodFor(c)}</span></div>
+    <div class="drow"><span class="dk">How to approach</span><span class="dv">${b.approach}</span></div>
+    <div class="dprogwrap">${prog}</div>
+    <p class="dhint">Swipe ‹ for other times this week, or › for the week calendar.</p>`;
+}
+function detailCalHTML(c){
+  const {dow,mins}=refTime();
+  let rows='';
+  for(let d=0;d<7;d++){
+    const w=dayWindows(c.s[d]);
+    const segs=w.segs.map(([s,e])=>`<i class="wkseg" style="left:${s/1440*100}%;width:${(e-s)/1440*100}%"></i>`).join('');
+    const nowMark = d===dow ? `<span class="wknow" style="left:${mins/1440*100}%"></span>` : '';
+    rows+=`<div class="wkrow${d===dow?' today':''}${w.off?' off':''}">
+      <div class="wkday">${DAYS[d].slice(0,3)}</div>
+      <div class="wkbar">${segs}${nowMark}</div></div>`;
+  }
+  return `<div class="wk">${rows}</div>
+    <div class="wkaxis"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
+    <p class="dhint">Shaded = out and findable. The teal line marks <b>now</b> on today's row.</p>`;
+}
+function detailListHTML(c){
+  const {dow}=refTime();
+  let rows='';
+  for(let i=0;i<7;i++){
+    const d=(dow+i)%7, entry=c.s[d], off=entry==null;
+    const label = i===0?'Today' : i===1?'Tomorrow' : DAYS[d];
+    rows+=`<div class="tlrow${i===0?' today':''}${off?' off':''}">
+      <span class="tlday">${label}</span><span class="tltimes">${windowText(entry)}</span></div>`;
+  }
+  return `<div class="tl">${rows}</div>
+    <p class="dhint">Listed from today onward${mode==='custom'?' · planning view active':''}. Times follow your device clock.</p>`;
+}
+function paintDetail(){
+  if(!detailC) return;
+  const c=detailC, b=BIO[c.b];
+  dTitle.innerHTML=`<span class="demoji">${b.emoji}</span><span>${c.n}</span>`;
+  document.getElementById('dPanelMain').innerHTML=detailMainHTML(c);
+  document.getElementById('dPanelCal').innerHTML=detailCalHTML(c);
+  document.getElementById('dPanelList').innerHTML=detailListHTML(c);
+  document.getElementById('dPanelMain').querySelectorAll('[data-act]').forEach(el=>{
+    el.addEventListener('click',e=>{ e.stopPropagation();
+      const a=el.dataset.act;
+      if(a==='fed') toggleFed(c);            // each of these saves + re-renders the lists behind
+      else if(a==='companion') setCompanion(c,true);
+      else if(a==='restore') setCompanion(c,false);
+      paintDetail();                          // keep the open overlay in sync
+    });
+  });
+}
+function openDetail(c){
+  detailC=c; paintDetail();
+  detailIdx=1;
+  dTrack.classList.add('dragging'); setDetailIdx(1);   // jump to center without animating
+  requestAnimationFrame(()=>dTrack.classList.remove('dragging'));
+  detail.classList.add('open'); scrim.classList.add('open');
+  if(!pushedState){ try{ history.pushState({crd:'detail'},''); pushedState=true; }catch(e){} }
+}
+function doCloseDetail(){
+  detail.classList.remove('open');
+  if(!sheet.classList.contains('open')) scrim.classList.remove('open');
+  detailC=null;
+}
+function closeDetail(){
+  if(!detail.classList.contains('open')) return;
+  doCloseDetail();                                         // close immediately for a snappy feel
+  if(pushedState){ pushedState=false; history.back(); }    // then unwind our history entry
+}
+// Hardware/browser back button while open: just close (our entry is already being popped).
+window.addEventListener('popstate',()=>{ if(detail.classList.contains('open')){ pushedState=false; doCloseDetail(); } });
+
+dPrev.onclick=()=>setDetailIdx(detailIdx-1);
+dNext.onclick=()=>setDetailIdx(detailIdx+1);
+document.getElementById('dClose').onclick=closeDetail;
+document.addEventListener('keydown',e=>{
+  if(!detail.classList.contains('open')) return;
+  if(e.key==='Escape') closeDetail();
+  else if(e.key==='ArrowLeft') setDetailIdx(detailIdx-1);
+  else if(e.key==='ArrowRight') setDetailIdx(detailIdx+1);
+});
+
+// Hand-rolled horizontal swipe (no gesture library). Touch for phones, mouse-pointer for desktop.
+let dragX0=null, dragY0=null, axis=null, vpW=0;
+function dStart(x,y){ dragX0=x; dragY0=y; axis=null; vpW=dViewport.clientWidth||1; dTrack.classList.add('dragging'); }
+function dMove(x,y,ev){
+  if(dragX0===null) return;
+  const dx=x-dragX0, dy=y-dragY0;
+  if(axis===null && (Math.abs(dx)>8||Math.abs(dy)>8)) axis=Math.abs(dx)>Math.abs(dy)?'x':'y';
+  if(axis!=='x') return;
+  if(ev && ev.cancelable) ev.preventDefault();   // claim the gesture; let panels scroll vertically otherwise
+  let pos=-detailIdx*vpW+dx;
+  const min=-2*vpW, max=0;                         // rubber-band past the ends
+  if(pos>max) pos=max+(pos-max)*0.3;
+  if(pos<min) pos=min+(pos-min)*0.3;
+  dTrack.style.transform=`translateX(${pos}px)`;
+}
+function dEnd(x){
+  if(dragX0===null) return;
+  const dx=(x==null?0:x-dragX0), wasX=axis==='x';
+  dragX0=null; axis=null;
+  dTrack.classList.remove('dragging');             // restore the snap transition
+  let target=detailIdx;
+  if(wasX && Math.abs(dx)>vpW*0.22) target = dx<0 ? detailIdx+1 : detailIdx-1;
+  setDetailIdx(target);
+}
+dViewport.addEventListener('touchstart',e=>dStart(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+dViewport.addEventListener('touchmove',e=>dMove(e.touches[0].clientX,e.touches[0].clientY,e),{passive:false});
+dViewport.addEventListener('touchend',e=>dEnd(e.changedTouches[0]?e.changedTouches[0].clientX:null));
+dViewport.addEventListener('touchcancel',()=>dEnd(null));
+dViewport.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') dStart(e.clientX,e.clientY); });
+window.addEventListener('pointermove',e=>{ if(dragX0!==null && e.pointerType==='mouse') dMove(e.clientX,e.clientY,e); });
+window.addEventListener('pointerup',e=>{ if(dragX0!==null && e.pointerType==='mouse') dEnd(e.clientX); });
 
 /* ---------------- GENERATIVE MUSIC (Web Audio, no assets) ---------------- */
 const Music=(()=>{
@@ -928,16 +1248,17 @@ musicBtn.onclick=async ()=>{
   }
 })();
 
+buildFilterBar();
 render();
 
 // Live-mode tick: re-render every 30s to catch midnight rollover and window expiry.
 // (Subsequent renders skip the appear animation, so this no longer flickers.)
-setInterval(()=>{ if(mode==='live') render(); }, 30000);
+setInterval(()=>{ if(mode==='live'){ render(); if(detailC) paintDetail(); } }, 30000);
 
 // Re-render on tab refocus, and pause/resume music while hidden to dodge timer throttling.
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){ Music.pause(); }
-  else { render(); Music.resume(); }
+  else { render(); if(detailC) paintDetail(); Music.resume(); }
 });
 window.addEventListener('focus',render);
 

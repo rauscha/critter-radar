@@ -2,7 +2,7 @@
    Cache-first for our own files. Bump CACHE_VERSION whenever index.html / icons change
    so phones download the new copy on their next launch with the network reachable. */
 
-const CACHE_VERSION = 'critter-radar-v5';
+const CACHE_VERSION = 'critter-radar-v6';
 const PRECACHE = [
   './',
   './index.html',
