@@ -212,6 +212,8 @@
   .chip.ripple{display:inline-flex;align-items:center;gap:5px}
   .chip.ripple .rdot{width:9px;height:9px}
   .chip.cond{background:rgba(127,224,196,.16);color:var(--calm)}
+  /* Sticker for fish whose location couldn't be cross-referenced yet. */
+  .chip.unverified{background:rgba(255,192,107,.16);color:var(--soon);border:1px solid rgba(255,192,107,.4)}
 
   /* ---- Quick filter (lightweight focus on top of enabled biomes) ---- */
   .filterbar{display:flex;gap:7px;overflow-x:auto;margin:0 4px 16px;padding-bottom:2px;
@@ -380,8 +382,8 @@
     </div>
     <div id="fishFootnotes" style="display:none">
       <div class="note" id="fishContextNote"></div>
-      <p style="margin-top:12px">Fish are grouped by biome. The coloured dot tells you which <b>ripple</b> to cast at: <span class="rdot white"></span> white (common), <span class="rdot blue"></span> blue (uncommon), <span class="rdot gold"></span> gold (rare). Tap a fish for every spot it’s found. A few only bite at <b>night</b> or in the <b>rain</b> — those are flagged. Tap the circle once you’ve caught one to file it under “Caught.”</p>
-      <p style="margin-top:10px">Fishing spots are community-sourced (IGN, cross-checked against the wiki, 2026) and reflect your enabled biomes. Your caught list is saved on this device — use <b>Export</b> in Settings to keep a backup.</p>
+      <p style="margin-top:12px">Fish are grouped by biome. The coloured dot tells you which <b>ripple</b> to cast at: <span class="rdot white"></span> white (common), <span class="rdot blue"></span> blue (uncommon), <span class="rdot gold"></span> gold (rare). Tap a fish for every spot it’s found. A few only bite at <b>night</b> or in the <b>rain</b> — those are flagged. A <b style="color:var(--soon)">⚠ Unverified</b> sticker means the fish exists but its exact spot wasn’t confirmed — double-check in game. Tap the circle once you’ve caught one to file it under “Caught.”</p>
+      <p style="margin-top:10px">Fishing spots are community-sourced (Dreamlight Valley Wiki, cross-checked against GameRant/ScreenRant/Dexerto, 2026) and reflect your enabled biomes. Your caught list is saved on this device — use <b>Export</b> in Settings to keep a backup.</p>
     </div>
   </footer>
 </div>
@@ -620,9 +622,9 @@ function rippleRank(r){ return r==='gold'?2:r==='blue'?1:r==='white'?0:3; }
 function rippleChip(r){ const m=RIPPLE[r]||RIPPLE.any; return `<span class="chip ripple"><span class="rdot ${r}"></span>${m.short}</span>`; }
 function cap(s){ return s? s.charAt(0).toUpperCase()+s.slice(1):s; }
 // Community-sourced (Dreamlight Valley Wiki, cross-checked against GameRant/ScreenRant/
-// Dexerto, 2026). Plaza has no fishing water, so it has no fish. Seasonal event fish, the
-// three unconfirmed Storybook Vale exclusives, and the Wishblossom realm are held back
-// pending verification — see the PR notes.
+// Dexerto, 2026). Plaza has no fishing water, so it has no fish. Fish flagged `unverified`
+// are confirmed to exist but their exact biome/ripple couldn't be cross-referenced — they
+// carry an ⚠ sticker. Seasonal event fish and the Wishblossom realm are still held back.
 const FISH = [
   // ===== BASE GAME =====
   // White-ripple / open-water commons
@@ -673,6 +675,10 @@ const FISH = [
   {n:"Flying Fish",        locs:[{b:"myth",w:"river",r:"any"}], time:"any", weather:"any", note:"Open water — no ripple needed."},
   {n:"Lamprey",            locs:[{b:"ever",w:"river",r:"gold"}], time:"any", weather:"any", sell:1500, rare:true, note:"One of the Vale’s most valuable catches."},
   {n:"Stygian Mudskipper", locs:[{b:"myth",w:"river",r:"gold"}], time:"any", weather:"any", sell:1500, rare:true, note:"One of the Vale’s most valuable catches."},
+  // Confirmed to exist in Storybook Vale, but biome/ripple are best-guess — verify in game.
+  {n:"Mussel",             locs:[{b:"ever",w:"pond",r:"white"}], time:"any", weather:"any", unverified:true, note:"⚠ Location unconfirmed — verify in game."},
+  {n:"Hippocampus",        locs:[{b:"ever",w:"pond",r:"blue"}], time:"any", weather:"any", unverified:true, note:"⚠ Location unconfirmed — verify in game. (Seahorse.)"},
+  {n:"Sorcerer Hat Hermit Crab", locs:[{b:"bind",w:"ocean",r:"blue"}], time:"any", weather:"any", unverified:true, note:"⚠ Location unconfirmed — verify in game."},
 ];
 
 /* ---------------- LOGIC ---------------- */
@@ -937,6 +943,7 @@ function fishCard(f, loc, i, inCaughtPile){
   if(f.time && f.time!=='any') chips.push(`<span class="chip cond">${f.time==='night'?'🌙 Night':'☀️ Day'}</span>`);
   if(f.weather && f.weather!=='any') chips.push(`<span class="chip cond">🌧 ${cap(f.weather)}</span>`);
   if(f.rare) chips.push(`<span class="chip dlc">rare</span>`);
+  if(f.unverified) chips.push(`<span class="chip unverified" title="Location not yet confirmed">⚠ Unverified</span>`);
   const right = (loc && f.sell)? `<div class="right"><div class="leaves">${f.sell}</div><div class="at">coins</div></div>` : '';
   li.innerHTML=`${left}<button class="emoji" data-act="open" aria-label="Details">${f.emoji||FISH_EMOJI}</button>
     <div class="meta"><div class="nm">${f.n}</div><div class="sub">${chips.join('')}</div></div>${right}`;
@@ -1346,7 +1353,7 @@ function fishDetailHTML(f){
   if(f.time && f.time!=='any') conds.push(f.time==='night'?'🌙 Night only':'☀️ Daytime only');
   if(f.weather && f.weather!=='any') conds.push('🌧 '+cap(f.weather)+' weather');
   return `<div class="dstatus t-${caught?'calm':'up'}">${caught?'Caught ✓ — in your collection':'Not caught yet'}</div>
-    <div class="dsub"><span class="chip dlc">${f.rare?'Rare fish':'Fish'}</span>${f.sell?`<span class="chip">${f.sell} coins</span>`:''}</div>
+    <div class="dsub"><span class="chip dlc">${f.rare?'Rare fish':'Fish'}</span>${f.sell?`<span class="chip">${f.sell} coins</span>`:''}${f.unverified?'<span class="chip unverified">⚠ Unverified location</span>':''}</div>
     <div class="grp" style="margin-left:2px">Where to catch</div>
     ${locRows||'<p class="dhint">No documented locations.</p>'}
     ${conds.length?`<div class="grp" style="margin-left:2px">Conditions</div><p class="dhint">${conds.join(' · ')}</p>`:''}
