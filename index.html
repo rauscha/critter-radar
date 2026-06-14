@@ -194,6 +194,27 @@
 
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
+  /* ---- Top-level category tabs (Critters / Fish / …future) ---- */
+  .tabs{display:flex;gap:8px;margin:0 4px 14px}
+  .tab{appearance:none;flex:1;border:1px solid var(--glass-brd);background:var(--glass);color:var(--ink-soft);
+    font-family:var(--font-body);font-weight:800;font-size:.92rem;padding:11px 12px;border-radius:14px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;backdrop-filter:blur(8px);transition:.16s}
+  .tab:hover{border-color:var(--gold);color:var(--gold)}
+  .tab.active{background:var(--gold-deep);border-color:var(--gold-deep);color:#231634}
+  .tab .tabem{font-size:1.1rem;line-height:1}
+
+  /* ---- Ripple (rarity) indicators — fish ---- */
+  .rdot{width:11px;height:11px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,.5);vertical-align:-.05em}
+  .rdot.white{background:#f4eeff}
+  .rdot.blue{background:#6db5ff;border-color:#6db5ff}
+  .rdot.gold{background:var(--gold);border-color:var(--gold)}
+  .rdot.any{background:transparent}
+  .chip.ripple{display:inline-flex;align-items:center;gap:5px}
+  .chip.ripple .rdot{width:9px;height:9px}
+  .chip.cond{background:rgba(127,224,196,.16);color:var(--calm)}
+  /* Sticker for fish whose location couldn't be cross-referenced yet. */
+  .chip.unverified{background:rgba(255,192,107,.16);color:var(--soon);border:1px solid rgba(255,192,107,.4)}
+
   /* ---- Quick filter (lightweight focus on top of enabled biomes) ---- */
   .filterbar{display:flex;gap:7px;overflow-x:auto;margin:0 4px 16px;padding-bottom:2px;
     -webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -303,6 +324,13 @@
     </div>
   </header>
 
+  <!-- Top-level category tabs. Critters ships today; Fish is the second category.
+       Future categories (plants, crystals, …) slot in here with a matching render module. -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="critters" id="tabCritters"><span class="tabem">🦝</span> Critters</button>
+    <button class="tab" data-tab="fish" id="tabFish"><span class="tabem">🐟</span> Fish</button>
+  </div>
+
   <div class="bar">
     <button class="btn" id="openSettings">⚙ Biomes &amp; time</button>
     <button class="btn music" id="musicBtn" title="If you don't hear anything, flip the phone's silent switch off and turn the volume up">🎵 Music</button>
@@ -320,22 +348,43 @@
     <button id="backupLater">Later</button>
   </div>
 
-  <div class="count" id="count"></div>
-  <ul id="nowList"></ul>
+  <!-- ===== CRITTERS TAB ===== -->
+  <div id="crittersView">
+    <div class="count" id="count"></div>
+    <ul id="nowList"></ul>
 
-  <div class="section-h closed" id="upHead"><span class="caret">▾</span> Coming up later today <span class="chip" id="upCount"></span></div>
-  <ul id="upList" style="display:none"></ul>
+    <div class="section-h closed" id="upHead"><span class="caret">▾</span> Coming up later today <span class="chip" id="upCount"></span></div>
+    <ul id="upList" style="display:none"></ul>
 
-  <div class="section-h" id="fedHead"><span class="caret">▾</span> ✓ Fed today <span class="chip" id="fedCount"></span></div>
-  <ul id="fedList"></ul>
+    <div class="section-h" id="fedHead"><span class="caret">▾</span> ✓ Fed today <span class="chip" id="fedCount"></span></div>
+    <ul id="fedList"></ul>
 
-  <div class="section-h closed" id="colHead"><span class="caret">▾</span> 🏆 Collected companions <span class="chip" id="colCount"></span></div>
-  <ul id="colList" style="display:none"></ul>
+    <div class="section-h closed" id="colHead"><span class="caret">▾</span> 🏆 Collected companions <span class="chip" id="colCount"></span></div>
+    <ul id="colList" style="display:none"></ul>
+  </div>
+
+  <!-- ===== FISH TAB ===== -->
+  <div id="fishView" style="display:none">
+    <!-- Ripple-colour (rarity) focus, fish-only. Layers on top of the biome filter. -->
+    <div class="filterbar" id="rarityBar"></div>
+    <div class="count" id="fishCount"></div>
+    <!-- Fish grouped by biome; each group is a collapsible section. -->
+    <div id="fishList"></div>
+    <div class="section-h closed" id="caughtHead"><span class="caret">▾</span> 🪣 Caught fish <span class="chip" id="caughtCount"></span></div>
+    <ul id="caughtList" style="display:none"></ul>
+  </div>
 
   <footer>
-    <div class="note" id="contextNote"></div>
-    <p style="margin-top:12px">Tap the circle to mark a critter <b>fed today</b> — it sinks to the “Fed today” pile and the tally (<b>×N</b>) climbs. It takes roughly 2–8 daily feedings to collect one as a companion (favourite food is faster), and the bar fills toward your goal. The fed check clears on its own at <b>midnight</b>, the same time the in-game feeding reward resets. Hit <b>🏆</b> once it’s a companion to file it away; restore it any time from “Collected.”</p>
-    <p style="margin-top:10px">Times are community-sourced (GameRant critter schedule, Dec 2025) and follow your device’s local clock. Two critters (Patterned Skunk, Blue Sweet Bee) also depend on weather, so they’re flagged 🌦. Your checks, tallies and collected list are saved on this device — use <b>Export</b> in Settings every so often to keep a backup.</p>
+    <div id="critterFootnotes">
+      <div class="note" id="contextNote"></div>
+      <p style="margin-top:12px">Tap the circle to mark a critter <b>fed today</b> — it sinks to the “Fed today” pile and the tally (<b>×N</b>) climbs. It takes roughly 2–8 daily feedings to collect one as a companion (favourite food is faster), and the bar fills toward your goal. The fed check clears on its own at <b>midnight</b>, the same time the in-game feeding reward resets. Hit <b>🏆</b> once it’s a companion to file it away; restore it any time from “Collected.”</p>
+      <p style="margin-top:10px">Times are community-sourced (GameRant critter schedule, Dec 2025) and follow your device’s local clock. Two critters (Patterned Skunk, Blue Sweet Bee) also depend on weather, so they’re flagged 🌦. Your checks, tallies and collected list are saved on this device — use <b>Export</b> in Settings every so often to keep a backup.</p>
+    </div>
+    <div id="fishFootnotes" style="display:none">
+      <div class="note" id="fishContextNote"></div>
+      <p style="margin-top:12px">Fish are grouped by biome. The coloured dot tells you which <b>ripple</b> to cast at: <span class="rdot white"></span> white (common), <span class="rdot blue"></span> blue (uncommon), <span class="rdot gold"></span> gold (rare). Tap a fish for every spot it’s found. A few only bite at <b>night</b> or in the <b>rain</b> — those are flagged. A <b style="color:var(--soon)">⚠ Unverified</b> sticker means the fish exists but its exact spot wasn’t confirmed — double-check in game. Tap the circle once you’ve caught one to file it under “Caught.”</p>
+      <p style="margin-top:10px">Fishing spots are community-sourced (Dreamlight Valley Wiki, cross-checked against GameRant/ScreenRant/Dexerto, 2026) and reflect your enabled biomes. Your caught list is saved on this device — use <b>Export</b> in Settings to keep a backup.</p>
+    </div>
   </footer>
 </div>
 
@@ -344,21 +393,24 @@
   <h2>Settings</h2>
   <p class="hint">Turn off biomes you haven’t unlocked so the list only shows critters you can actually reach.</p>
 
-  <div class="grp">Fed-today pile</div>
-  <div class="tog"><div class="lbl">Hide fed critters<small>Otherwise they sink to a dimmed pile at the bottom</small></div><div class="sw" id="swHide"></div></div>
+  <!-- Critter-only settings; hidden while the Fish tab is active. -->
+  <div id="critterSettings">
+    <div class="grp">Fed-today pile</div>
+    <div class="tog"><div class="lbl">Hide fed critters<small>Otherwise they sink to a dimmed pile at the bottom</small></div><div class="sw" id="swHide"></div></div>
 
-  <div class="grp">Companion goal (approx.)</div>
-  <div class="tog"><div class="lbl">Feedings to “likely collected”<small>Favourites finish in ~2–5; rarer ones up to ~8</small></div>
-    <div class="stepper"><button id="goalDown">−</button><span class="val" id="goalVal">8</span><button id="goalUp">+</button></div></div>
+    <div class="grp">Companion goal (approx.)</div>
+    <div class="tog"><div class="lbl">Feedings to “likely collected”<small>Favourites finish in ~2–5; rarer ones up to ~8</small></div>
+      <div class="stepper"><button id="goalDown">−</button><span class="val" id="goalVal">8</span><button id="goalUp">+</button></div></div>
 
-  <div class="grp">Viewing time</div>
-  <div class="seg">
-    <button class="btn active" id="modeLive">Right now</button>
-    <button class="btn" id="modeCustom">Pick a time</button>
-  </div>
-  <div class="timegrid" id="customTime" style="display:none">
-    <select id="dowSel"></select>
-    <input type="time" id="timeSel" value="10:00">
+    <div class="grp">Viewing time</div>
+    <div class="seg">
+      <button class="btn active" id="modeLive">Right now</button>
+      <button class="btn" id="modeCustom">Pick a time</button>
+    </div>
+    <div class="timegrid" id="customTime" style="display:none">
+      <select id="dowSel"></select>
+      <input type="time" id="timeSel" value="10:00">
+    </div>
   </div>
 
   <div id="biomeToggles"></div>
@@ -554,6 +606,81 @@ const C = [
 const BIO = Object.fromEntries(BIOMES.map(b=>[b.id,b]));
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+/* ---------------- FISH DATA ----------------
+   Second category. Fish are mostly all-day; what matters is WHERE (biome + water +
+   ripple colour) and a few day/night/weather conditions. The schedule/“leaves soon”
+   engine above isn't used here — fish are grouped by biome instead.
+   Shape: {n:name, emoji?, locs:[{b:biomeId, w:water, r:ripple}], time, weather, sell?, rare?, note?}
+     r (ripple): "white" common · "blue" uncommon · "gold" rare · "any" no specific ripple
+     time:    "any" | "day" | "night"
+     weather: "any" | "rainy" | "sunny"                                                       */
+const RIPPLE = {
+  white:{short:"Common"}, blue:{short:"Uncommon"}, gold:{short:"Rare"}, any:{short:"Any ripple"}
+};
+const FISH_EMOJI = "🐟";
+function rippleRank(r){ return r==='gold'?2:r==='blue'?1:r==='white'?0:3; }
+function rippleChip(r){ const m=RIPPLE[r]||RIPPLE.any; return `<span class="chip ripple"><span class="rdot ${r}"></span>${m.short}</span>`; }
+function cap(s){ return s? s.charAt(0).toUpperCase()+s.slice(1):s; }
+// Community-sourced (Dreamlight Valley Wiki, cross-checked against GameRant/ScreenRant/
+// Dexerto, 2026). Plaza has no fishing water, so it has no fish. Fish flagged `unverified`
+// are confirmed to exist but their exact biome/ripple couldn't be cross-referenced — they
+// carry an ⚠ sticker. Seasonal event fish and the Wishblossom realm are still held back.
+const FISH = [
+  // ===== BASE GAME =====
+  // White-ripple / open-water commons
+  {n:"Bass",          locs:[{b:"meadow",w:"pond",r:"white"},{b:"forest",w:"river",r:"white"},{b:"plateau",w:"river",r:"white"},{b:"heights",w:"river",r:"white"}], time:"any", weather:"any", sell:8, note:"Open water or white ripples — the most common fish, in almost every freshwater biome."},
+  {n:"Perch",         locs:[{b:"forest",w:"river",r:"white"},{b:"glade",w:"river",r:"white"}], time:"any", weather:"any", sell:80},
+  {n:"Rainbow Trout", locs:[{b:"meadow",w:"pond",r:"white"},{b:"forest",w:"river",r:"white"}], time:"any", weather:"any", sell:50},
+  {n:"Salmon",        locs:[{b:"heights",w:"river",r:"white"},{b:"plateau",w:"river",r:"white"}], time:"any", weather:"any", sell:150},
+  {n:"Tilapia",       locs:[{b:"heights",w:"river",r:"white"},{b:"plateau",w:"river",r:"white"}], time:"any", weather:"any", sell:600},
+  {n:"Cod",           locs:[{b:"beach",w:"ocean",r:"white"},{b:"glade",w:"pond",r:"white"},{b:"forgot",w:"river",r:"white"}], time:"any", weather:"any", sell:35},
+  {n:"Herring",       locs:[{b:"beach",w:"ocean",r:"white"},{b:"glade",w:"pond",r:"white"}], time:"any", weather:"any", sell:65},
+  {n:"Sole",          locs:[{b:"forgot",w:"river",r:"white"}], time:"any", weather:"any", sell:200},
+  // Blue-ripple
+  {n:"Tuna",          locs:[{b:"glade",w:"pond",r:"blue"},{b:"forgot",w:"river",r:"blue"}], time:"any", weather:"any", sell:95},
+  {n:"Carp",          locs:[{b:"forest",w:"river",r:"blue"},{b:"plateau",w:"river",r:"blue"}], time:"any", weather:"any", sell:400},
+  {n:"Bream",         locs:[{b:"meadow",w:"pond",r:"blue"}], time:"any", weather:"any", sell:600},
+  {n:"Crab",          locs:[{b:"heights",w:"river",r:"blue"}], time:"any", weather:"any", sell:600},
+  {n:"Shrimp",        locs:[{b:"beach",w:"ocean",r:"blue"}], time:"day", weather:"any", sell:300},
+  {n:"Lancetfish",    locs:[{b:"forgot",w:"river",r:"blue"}], time:"any", weather:"any", sell:650},
+  {n:"Kingfish",      locs:[{b:"beach",w:"ocean",r:"blue"}], time:"night", weather:"any", sell:450},
+  // Gold-ripple rares
+  {n:"Catfish",       locs:[{b:"meadow",w:"pond",r:"gold"}], time:"any", weather:"any", sell:550, rare:true},
+  {n:"Pike",          locs:[{b:"forest",w:"river",r:"gold"}], time:"any", weather:"any", sell:800, rare:true},
+  {n:"Walleye",       locs:[{b:"plateau",w:"river",r:"gold"}], time:"any", weather:"any", sell:1100, rare:true},
+  {n:"White Sturgeon",locs:[{b:"heights",w:"river",r:"gold"}], time:"any", weather:"any", sell:1200, rare:true},
+  {n:"Lobster",       locs:[{b:"glade",w:"pond",r:"gold"}], time:"any", weather:"any", sell:950, rare:true},
+  {n:"Swordfish",     locs:[{b:"beach",w:"ocean",r:"gold"}], time:"any", weather:"any", sell:700, rare:true},
+  {n:"Anglerfish",    locs:[{b:"forgot",w:"river",r:"gold"}], time:"any", weather:"any", sell:1500, rare:true, note:"The most valuable base-game fish."},
+  {n:"Fugu",          locs:[{b:"beach",w:"ocean",r:"gold"}], time:"any", weather:"rainy", sell:900, rare:true, note:"Only appears during rain or thunderstorms."},
+  {n:"Squid",         locs:[{b:"glade",w:"pond",r:"any"},{b:"forgot",w:"river",r:"any"}], time:"any", weather:"any", sell:300, note:"Ripple colour isn’t fixed — cast at any spot in these waters."},
+
+  // ===== ETERNITY ISLE (A Rift in Time) =====
+  {n:"Shad",          locs:[{b:"landing",w:"ocean",r:"white"}], time:"any", weather:"any"},
+  {n:"Sea Snail",     locs:[{b:"landing",w:"ocean",r:"white"}], time:"any", weather:"any"},
+  {n:"Octopus",       locs:[{b:"landing",w:"ocean",r:"blue"}], time:"any", weather:"any", note:"Around The Docks and The Overlook."},
+  {n:"Robot Fish",    locs:[{b:"landing",w:"ocean",r:"gold"}], time:"any", weather:"any", rare:true, note:"Around The Docks and The Overlook."},
+  {n:"Sand Fish",     locs:[{b:"dunes",w:"sand pool",r:"white"}], time:"any", weather:"any", note:"Fished from sand pools."},
+  {n:"Scorpion",      locs:[{b:"dunes",w:"sand pool",r:"blue"}], time:"any", weather:"any", note:"Fished from sand pools."},
+  {n:"Dunebopper",    locs:[{b:"dunes",w:"sand pool",r:"blue"}], time:"any", weather:"any", note:"Sand pools around The Oasis."},
+  {n:"Sand Worm",     locs:[{b:"dunes",w:"sand pool",r:"gold"}], time:"any", weather:"any", rare:true, note:"Gold sand pools."},
+  {n:"Pirarucu",      locs:[{b:"tangle",w:"river",r:"blue"}], time:"any", weather:"any", sell:625},
+  {n:"Electric Eel",  locs:[{b:"tangle",w:"river",r:"gold"}], time:"any", weather:"any", rare:true},
+  {n:"Piranha",       locs:[{b:"tangle",w:"river",r:"gold"}], time:"any", weather:"any", sell:1300, rare:true, note:"Lagoon region."},
+  {n:"Prisma Shrimp", locs:[{b:"tangle",w:"river",r:"gold"}], time:"any", weather:"any", rare:true, note:"Grove region."},
+
+  // ===== STORYBOOK VALE =====
+  {n:"Koi",                locs:[{b:"bind",w:"pond",r:"white"}], time:"any", weather:"any", sell:50},
+  {n:"Sea Wolf",           locs:[{b:"bind",w:"ocean",r:"white"}], time:"any", weather:"any"},
+  {n:"Flying Fish",        locs:[{b:"myth",w:"river",r:"any"}], time:"any", weather:"any", note:"Open water — no ripple needed."},
+  {n:"Lamprey",            locs:[{b:"ever",w:"river",r:"gold"}], time:"any", weather:"any", sell:1500, rare:true, note:"One of the Vale’s most valuable catches."},
+  {n:"Stygian Mudskipper", locs:[{b:"myth",w:"river",r:"gold"}], time:"any", weather:"any", sell:1500, rare:true, note:"One of the Vale’s most valuable catches."},
+  // Confirmed to exist in Storybook Vale, but biome/ripple are best-guess — verify in game.
+  {n:"Mussel",             locs:[{b:"ever",w:"pond",r:"white"}], time:"any", weather:"any", unverified:true, note:"⚠ Location unconfirmed — verify in game."},
+  {n:"Hippocampus",        locs:[{b:"ever",w:"pond",r:"blue"}], time:"any", weather:"any", unverified:true, note:"⚠ Location unconfirmed — verify in game. (Seahorse.)"},
+  {n:"Sorcerer Hat Hermit Crab", locs:[{b:"bind",w:"ocean",r:"blue"}], time:"any", weather:"any", unverified:true, note:"⚠ Location unconfirmed — verify in game."},
+];
+
 /* ---------------- LOGIC ---------------- */
 function intervalsActive(intervals, now){
   let best=null;
@@ -639,6 +766,19 @@ if(typeof progress!=='object' || progress===null) progress={};
 // Quick filter: 'all' or a biome id. A view-only focus layered on top of enabled biomes.
 let filterBiome = store.get('filterBiome', 'all');
 if(typeof filterBiome!=='string') filterBiome='all';
+// Active category tab.
+let activeTab = store.get('activeTab','critters');
+if(activeTab!=='critters' && activeTab!=='fish') activeTab='critters';
+// Fish: ripple-colour focus, and caught set keyed by fish name.
+let fishRarity = store.get('fishRarity','all');
+if(typeof fishRarity!=='string') fishRarity='all';
+let fishCaught = store.get('fishCaught', {});
+if(typeof fishCaught!=='object' || fishCaught===null) fishCaught={};
+const isCaught = f => !!fishCaught[f.n];
+function toggleCaught(f){
+  if(fishCaught[f.n]) delete fishCaught[f.n]; else fishCaught[f.n]=true;
+  store.set('fishCaught',fishCaught); render();
+}
 
 const keyOf = c => c.b + '|' + c.n;
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
@@ -663,12 +803,28 @@ function refTime(){
   if(mode==='custom'){ const [h,m]=customTime.split(':').map(Number); return {dow:customDow, mins:h*60+m}; }
   const d=new Date(); return {dow:d.getDay(), mins:d.getHours()*60+d.getMinutes()};
 }
-function render(){
+function updateClock(){
   const {dow,mins}=refTime();
   document.getElementById('nowLabel').textContent = `${DAYS[dow]} · ${fmtClock(mins)}`;
   document.getElementById('modeLabel').innerHTML = mode==='custom' ? '<span class="chip">planning view</span>' : '';
   document.getElementById('livedot').style.background = mode==='custom' ? 'var(--gold)' : 'var(--calm)';
-
+}
+// Dispatcher: toggles the active category's view, then renders it. Shared chrome
+// (clock, backup banner) runs for every tab.
+function render(){
+  updateClock();
+  const onFish = activeTab==='fish';
+  document.getElementById('crittersView').style.display = onFish?'none':'block';
+  document.getElementById('fishView').style.display = onFish?'block':'none';
+  document.getElementById('critterFootnotes').style.display = onFish?'none':'block';
+  document.getElementById('fishFootnotes').style.display = onFish?'block':'none';
+  const cs=document.getElementById('critterSettings'); if(cs) cs.style.display = onFish?'none':'block';
+  if(onFish) renderFish(); else renderCritters();
+  refreshBackupBanner();
+  firstRender = false;
+}
+function renderCritters(){
+  const {dow,mins}=refTime();
   const now=[], up=[], fed=[], col=[];
   for(const c of C){
     if(filterBiome!=='all' && c.b!==filterBiome) continue;   // quick-filter focus
@@ -719,9 +875,84 @@ function render(){
   const tracked = C.filter(c=>enabled[c.b] && !isCompanion(c)).length;
   document.getElementById('contextNote').innerHTML =
     `Still hunting <b style="color:var(--gold)">${tracked}</b> variants across <b style="color:var(--gold)">${BIOMES.filter(b=>enabled[b.id]).length}</b> biomes · <b style="color:var(--gold)">${col.length}</b> collected. Unfed critters are ranked by who vanishes soonest; “All&nbsp;day” sits last; fed ones drop to the pile below until midnight.`;
+}
 
-  refreshBackupBanner();
-  firstRender = false;
+/* ---------------- FISH RENDER ---------------- */
+function renderFish(){
+  // Build biome groups of uncaught fish (one row per location), plus a caught pile.
+  const groups={};                 // biomeId -> [{f, loc}]
+  const caught=[];
+  for(const f of FISH){
+    if(isCaught(f)){ caught.push(f); continue; }
+    for(const loc of f.locs){
+      if(!enabled[loc.b]) continue;
+      if(filterBiome!=='all' && loc.b!==filterBiome) continue;
+      if(fishRarity!=='all' && loc.r!==fishRarity) continue;
+      (groups[loc.b]=groups[loc.b]||[]).push({f,loc});
+    }
+  }
+  const host=document.getElementById('fishList'); host.innerHTML='';
+  let rowTotal=0, biomeCount=0, gi=0;
+  for(const b of BIOMES){
+    const rows=groups[b.id]; if(!rows || !rows.length) continue;
+    biomeCount++; rowTotal+=rows.length;
+    rows.sort((x,y)=> rippleRank(x.loc.r)-rippleRank(y.loc.r) || x.f.n.localeCompare(y.f.n));
+    const head=document.createElement('div'); head.className='section-h';
+    head.innerHTML=`<span class="caret">▾</span> ${b.emoji} ${b.name} <span class="chip">${rows.length}</span>`;
+    const ul=document.createElement('ul');
+    head.onclick=()=>{ const open=ul.style.display==='none'; ul.style.display=open?'block':'none'; head.classList.toggle('closed',!open); };
+    rows.forEach((o,i)=>ul.appendChild(fishCard(o.f,o.loc,gi+i)));
+    gi+=rows.length;
+    host.appendChild(head); host.appendChild(ul);
+  }
+  if(!rowTotal){
+    host.innerHTML='<div class="empty">'+((filterBiome!=='all'||fishRarity!=='all')
+      ? 'No fish match this filter. Widen the biome or ripple filter to see more.'
+      : 'No fish to show — check your enabled biomes in Settings, or you’ve caught them all. 🎣')+'</div>';
+  }
+  // Headline counts UNIQUE fish still to catch (a fish can sit in several biomes).
+  const uncaughtUnique = FISH.filter(f=>!isCaught(f) && f.locs.some(l=>
+    enabled[l.b] && (filterBiome==='all'||l.b===filterBiome) && (fishRarity==='all'||l.r===fishRarity))).length;
+  document.getElementById('fishCount').innerHTML =
+    `<b>${uncaughtUnique}</b> fish to catch` + (biomeCount?` · across <b>${biomeCount}</b> ${biomeCount===1?'biome':'biomes'}`:'');
+
+  const cl=document.getElementById('caughtList'); cl.innerHTML='';
+  caught.sort((a,b)=>a.n.localeCompare(b.n));
+  document.getElementById('caughtHead').style.display = caught.length? 'flex':'none';
+  caught.forEach((f,i)=>cl.appendChild(fishCard(f,null,i,true)));
+  document.getElementById('caughtCount').textContent = caught.length||'';
+
+  const totalCaught = FISH.filter(isCaught).length;
+  document.getElementById('fishContextNote').innerHTML =
+    `<b style="color:var(--gold)">${totalCaught}</b> of <b style="color:var(--gold)">${FISH.length}</b> fish caught. Listed under each biome you can reach; tap a fish for every spot it’s found, the ripple to use, and any night/rain conditions.`;
+}
+function fishCard(f, loc, i, inCaughtPile){
+  const li=document.createElement('li');
+  const caught=isCaught(f);
+  li.className=`card t-${caught?'done':'calm'}`+(inCaughtPile?' faded':'')+(firstRender?' appear':'');
+  if(firstRender) li.style.animationDelay=(i*0.03)+'s';
+  const left=`<button class="check${caught?' done':''}" data-act="caught" title="Caught"></button>`;
+  const chips=[];
+  if(loc){
+    chips.push(`<span class="chip">${cap(loc.w)}</span>`);
+    chips.push(rippleChip(loc.r));
+  } else {
+    const bs=[...new Set(f.locs.map(l=>BIO[l.b]?BIO[l.b].name:l.b))];
+    chips.push(`<span class="chip">${bs.slice(0,2).join(', ')}${bs.length>2?' +'+(bs.length-2):''}</span>`);
+  }
+  if(f.time && f.time!=='any') chips.push(`<span class="chip cond">${f.time==='night'?'🌙 Night':'☀️ Day'}</span>`);
+  if(f.weather && f.weather!=='any') chips.push(`<span class="chip cond">🌧 ${cap(f.weather)}</span>`);
+  if(f.rare) chips.push(`<span class="chip dlc">rare</span>`);
+  if(f.unverified) chips.push(`<span class="chip unverified" title="Location not yet confirmed">⚠ Unverified</span>`);
+  const right = (loc && f.sell)? `<div class="right"><div class="leaves">${f.sell}</div><div class="at">coins</div></div>` : '';
+  li.innerHTML=`${left}<button class="emoji" data-act="open" aria-label="Details">${f.emoji||FISH_EMOJI}</button>
+    <div class="meta"><div class="nm">${f.n}</div><div class="sub">${chips.join('')}</div></div>${right}`;
+  li.querySelectorAll('[data-act]').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(el.dataset.act==='caught') toggleCaught(f); else openFishDetail(f);
+  }));
+  li.addEventListener('click',()=>openFishDetail(f));
+  return li;
 }
 
 /* ---------------- BACKUP REMINDER BANNER ---------------- */
@@ -879,13 +1110,15 @@ function collapser(headId,listId,startClosed){
 collapser('upHead','upList',true);
 collapser('colHead','colList',true);
 collapser('fedHead','fedList',false);
+collapser('caughtHead','caughtList',true);
 
 /* ---------------- EXPORT / IMPORT ---------------- */
 // Build the JSON payload from current state — used by both Export button and the backup-due banner.
 function buildBackupBlob(){
   const data={
-    app:'critter-radar', version:1, exportedAt:new Date().toISOString(),
-    progress, enabled, goal, hideFed, customDow, customTime, timeMode:mode
+    app:'critter-radar', version:2, exportedAt:new Date().toISOString(),
+    progress, enabled, goal, hideFed, customDow, customTime, timeMode:mode,
+    fishCaught
   };
   return { json: JSON.stringify(data,null,2), filename: `critter-radar-backup-${todayStr()}.json` };
 }
@@ -945,6 +1178,7 @@ importFile.onchange=()=>{
       }
       if(typeof data.goal==='number'){ goal=Math.max(2,Math.min(20,data.goal)); store.set('goal',goal); goalVal.textContent=goal; }
       if(typeof data.hideFed==='boolean'){ hideFed=data.hideFed; store.set('hideFed',hideFed); paintHide(); }
+      if(data.fishCaught && typeof data.fishCaught==='object'){ fishCaught=data.fishCaught; store.set('fishCaught',fishCaught); }
       firstRender = true;     // animate the new state in
       buildFilterBar();       // enabled biomes may have changed
       render();
@@ -977,13 +1211,43 @@ function buildFilterBar(){
   for(const b of BIOMES){ if(enabled[b.id]) chip(b.id, b.name, b.emoji); }
 }
 
+/* ---------------- TABS + RARITY FILTER ---------------- */
+function setTab(t){
+  if(t!=='critters' && t!=='fish') t='critters';
+  activeTab=t; store.set('activeTab',t);
+  document.getElementById('tabCritters').classList.toggle('active',t==='critters');
+  document.getElementById('tabFish').classList.toggle('active',t==='fish');
+  firstRender=true;            // animate the newly revealed list in
+  buildFilterBar();            // same biome filter, repainted for the active tab
+  render();
+}
+document.getElementById('tabCritters').onclick=()=>setTab('critters');
+document.getElementById('tabFish').onclick=()=>setTab('fish');
+
+function buildRarityBar(){
+  const host=document.getElementById('rarityBar'); if(!host) return;
+  host.innerHTML='';
+  const chip=(id,label,dot)=>{
+    const b=document.createElement('button');
+    b.className='fchip'+(fishRarity===id?' active':'');
+    b.innerHTML=(dot?`<span class="rdot ${dot}"></span>`:'')+label;
+    b.onclick=()=>{
+      fishRarity=id; store.set('fishRarity',id);
+      [...host.children].forEach(c=>c.classList.toggle('active',c===b));
+      render();
+    };
+    host.appendChild(b);
+  };
+  chip('all','All ripples'); chip('white','Common','white'); chip('blue','Uncommon','blue'); chip('gold','Rare','gold');
+}
+
 /* ---------------- DETAIL OVERLAY (swipeable panels) ---------------- */
 const detail=document.getElementById('detail');
 const dTrack=document.getElementById('dTrack'), dViewport=document.getElementById('dViewport');
 const dTitle=document.getElementById('dTitle'), dDots=document.getElementById('dDots'),
       dLabel=document.getElementById('dLabel'), dPrev=document.getElementById('dPrev'), dNext=document.getElementById('dNext');
 const D_LABELS=['Other times this week','Details','This week · calendar'];
-let detailC=null, detailIdx=1, pushedState=false;
+let detailC=null, detailFish=null, detailMode='critter', detailIdx=1, pushedState=false;
 
 function setDetailIdx(i){
   detailIdx=Math.max(0,Math.min(2,i));
@@ -1068,6 +1332,8 @@ function paintDetail(){
   });
 }
 function openDetail(c){
+  detailMode='critter'; detailFish=null;
+  document.querySelector('.dpager').style.display='';   // 3-panel pager for critters
   detailC=c; paintDetail();
   detailIdx=1;
   dTrack.classList.add('dragging'); setDetailIdx(1);   // jump to center without animating
@@ -1075,10 +1341,49 @@ function openDetail(c){
   detail.classList.add('open'); scrim.classList.add('open');
   if(!pushedState){ try{ history.pushState({crd:'detail'},''); pushedState=true; }catch(e){} }
 }
+
+/* ---------------- FISH DETAIL (single panel, reuses the overlay shell) ---------------- */
+function fishDetailHTML(f){
+  const caught=isCaught(f);
+  const locRows=f.locs.map(l=>{
+    const bn=BIO[l.b]?BIO[l.b].name:l.b, m=RIPPLE[l.r]||RIPPLE.any;
+    return `<div class="drow"><span class="dk">${bn}</span><span class="dv">${cap(l.w)} · <span class="chip ripple"><span class="rdot ${l.r}"></span>${m.short}</span></span></div>`;
+  }).join('');
+  const conds=[];
+  if(f.time && f.time!=='any') conds.push(f.time==='night'?'🌙 Night only':'☀️ Daytime only');
+  if(f.weather && f.weather!=='any') conds.push('🌧 '+cap(f.weather)+' weather');
+  return `<div class="dstatus t-${caught?'calm':'up'}">${caught?'Caught ✓ — in your collection':'Not caught yet'}</div>
+    <div class="dsub"><span class="chip dlc">${f.rare?'Rare fish':'Fish'}</span>${f.sell?`<span class="chip">${f.sell} coins</span>`:''}${f.unverified?'<span class="chip unverified">⚠ Unverified location</span>':''}</div>
+    <div class="grp" style="margin-left:2px">Where to catch</div>
+    ${locRows||'<p class="dhint">No documented locations.</p>'}
+    ${conds.length?`<div class="grp" style="margin-left:2px">Conditions</div><p class="dhint">${conds.join(' · ')}</p>`:''}
+    ${f.note?`<p class="dhint">${f.note}</p>`:''}
+    <button class="dbig${caught?' on':''}" data-act="caught">${caught?'✓ Caught — tap to undo':'Mark as caught'}</button>
+    <p class="dhint">Ripple guide: <span class="rdot white"></span> common · <span class="rdot blue"></span> uncommon · <span class="rdot gold"></span> rare.</p>`;
+}
+function bindFishDetailActs(f){
+  document.getElementById('dPanelMain').querySelectorAll('[data-act]').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(el.dataset.act==='caught'){ toggleCaught(f); document.getElementById('dPanelMain').innerHTML=fishDetailHTML(f); bindFishDetailActs(f); }
+  }));
+}
+function openFishDetail(f){
+  detailMode='fish'; detailFish=f; detailC=null;
+  dTitle.innerHTML=`<span class="demoji">${f.emoji||FISH_EMOJI}</span><span>${f.n}</span>`;
+  document.getElementById('dPanelList').innerHTML='';
+  document.getElementById('dPanelCal').innerHTML='';
+  document.getElementById('dPanelMain').innerHTML=fishDetailHTML(f);
+  bindFishDetailActs(f);
+  document.querySelector('.dpager').style.display='none';   // single panel: no pager
+  detailIdx=1; dTrack.classList.add('dragging'); setDetailIdx(1);
+  requestAnimationFrame(()=>dTrack.classList.remove('dragging'));
+  detail.classList.add('open'); scrim.classList.add('open');
+  if(!pushedState){ try{ history.pushState({crd:'detail'},''); pushedState=true; }catch(e){} }
+}
 function doCloseDetail(){
   detail.classList.remove('open');
   if(!sheet.classList.contains('open')) scrim.classList.remove('open');
-  detailC=null;
+  detailC=null; detailFish=null;
 }
 function closeDetail(){
   if(!detail.classList.contains('open')) return;
@@ -1094,13 +1399,14 @@ document.getElementById('dClose').onclick=closeDetail;
 document.addEventListener('keydown',e=>{
   if(!detail.classList.contains('open')) return;
   if(e.key==='Escape') closeDetail();
+  else if(detailMode==='fish') return;                 // fish detail is a single panel
   else if(e.key==='ArrowLeft') setDetailIdx(detailIdx-1);
   else if(e.key==='ArrowRight') setDetailIdx(detailIdx+1);
 });
 
 // Hand-rolled horizontal swipe (no gesture library). Touch for phones, mouse-pointer for desktop.
 let dragX0=null, dragY0=null, axis=null, vpW=0;
-function dStart(x,y){ dragX0=x; dragY0=y; axis=null; vpW=dViewport.clientWidth||1; dTrack.classList.add('dragging'); }
+function dStart(x,y){ if(detailMode==='fish') return; dragX0=x; dragY0=y; axis=null; vpW=dViewport.clientWidth||1; dTrack.classList.add('dragging'); }
 function dMove(x,y,ev){
   if(dragX0===null) return;
   const dx=x-dragX0, dy=y-dragY0;
@@ -1248,7 +1554,10 @@ musicBtn.onclick=async ()=>{
   }
 })();
 
+document.getElementById('tabCritters').classList.toggle('active',activeTab==='critters');
+document.getElementById('tabFish').classList.toggle('active',activeTab==='fish');
 buildFilterBar();
+buildRarityBar();
 render();
 
 // Live-mode tick: re-render every 30s to catch midnight rollover and window expiry.
